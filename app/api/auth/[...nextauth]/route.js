@@ -44,27 +44,17 @@ export const authOptions = {
           await dbConnect();
           const user = await User.findOne({ email: credentials.email }).lean();
           if (!user) {
-            console.log("No user found with email:", credentials.email);
             return null;
           }
 
           const isValid = await bcrypt.compare(credentials.password, user.password);
           if (isValid) {
-            // in case where session isn't presistent
-            // if (typeof window !== 'undefined') {
-            //   window.localStorage.setItem("userLoggedIn", JSON.stringify({
-            //     id: user._id.toString(),
-            //     email: user.email,
-            //     name: `${user.firstName} ${user.lastName}` || null,
-            //   }))
-            // }
             return {
               id: user._id.toString(),
               email: user.email,
               name: `${user.firstName} ${user.lastName}` || null,
             };
           } else {
-            console.log("Invalid password for email:", credentials.email);
             return null;
           }
         } catch (error) {
@@ -82,7 +72,6 @@ export const authOptions = {
     async signIn({ user, account, profile }) {
       await dbConnect();
       if (account?.provider === "google" || account?.provider === "facebook") {
-        const customProfile = profile;
         const existingUser = await User.findOne({ email: user.email });
 
         if (existingUser) {
@@ -90,16 +79,16 @@ export const authOptions = {
         } else {
           const newUser = new User({
             email: user.email,
-            firstName: customProfile.given_name || (customProfile.name?.split(" ")[0] || "Unknown"),
-            lastName: customProfile.family_name || (customProfile.name?.split(" ")[1] || "Unknown"),
+            firstName: profile.first_name || (profile.name?.split(" ")[0] || "Unknown"),
+            lastName: profile.last_name || (profile.name?.split(" ")[1] || "Unknown"),
             password: "oauth-user",
             receiveUpdates: false,
           });
           await newUser.save();
           console.log(`Created new user ${user.email}`);
         }
-        return true;
       }
+      return true;
     },
     async jwt({ token, account, user }) {
       if (account) {
@@ -111,38 +100,18 @@ export const authOptions = {
         token.email = user.email;
         token.name = user.name;
       }
-      console.log("JWT token updated:", token);
       return token;
     },
     async session({ session, token }) {
-      console.log("Session token before update:", token);
-      // Ensure session.user is always populated from the token
       if (token) {
         session.user = {
           id: token.id || null,
           email: token.email || null,
           name: token.name || null,
-          // Add other user properties from token if needed
+          provider: token.provider || null,
         };
       }
 
-      // If session.user.email exists, try to fetch more detailed user data from DB
-      if (session.user?.email) {
-        try {
-          await dbConnect();
-          const dbuser = await User.findOne({ email: session.user.email }).lean();
-          if (dbuser) {
-            session.user.id = dbuser._id.toString();
-            session.user.email = dbuser.email;
-            session.user.name = `${dbuser.firstName} ${dbuser.lastName}` || session.user.name;
-          } else {
-            console.warn("No user found for email:", session.user.email);
-          }
-        } catch (error) {
-          console.error("Error fetching user in session callback:", error);
-        }
-      }
-      console.log("Session after update:", session);
       return session;
     },
   },
