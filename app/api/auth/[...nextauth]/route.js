@@ -3,14 +3,22 @@ import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter";
+import { MongoClient } from "mongodb"; // <-- Add this
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 
+// Create a MongoDB client promise for the adapter
+const client = new MongoClient(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+const clientPromise = client.connect();
+
 export const authOptions = {
-  adapter: MongoDBAdapter(dbConnect()),
+  adapter: MongoDBAdapter(clientPromise), // <-- Use clientPromise here
   session: {
-    strategy: "database", // Use database sessions
+    strategy: "database",
   },
   providers: [
     GoogleProvider({
@@ -33,6 +41,7 @@ export const authOptions = {
         }
 
         try {
+          await dbConnect();
           const user = await User.findOne({ email: credentials.email }).lean();
           if (!user) {
             console.log("No user found with email:", credentials.email);
@@ -42,13 +51,13 @@ export const authOptions = {
           const isValid = await bcrypt.compare(credentials.password, user.password);
           if (isValid) {
             // in case where session isn't presistent
-            if (typeof window !== 'undefined') {
-              window.localStorage.setItem("userLoggedIn", JSON.stringify({
-                id: user._id.toString(),
-                email: user.email,
-                name: `${user.firstName} ${user.lastName}` || null,
-              }))
-            }
+            // if (typeof window !== 'undefined') {
+            //   window.localStorage.setItem("userLoggedIn", JSON.stringify({
+            //     id: user._id.toString(),
+            //     email: user.email,
+            //     name: `${user.firstName} ${user.lastName}` || null,
+            //   }))
+            // }
             return {
               id: user._id.toString(),
               email: user.email,
@@ -71,6 +80,7 @@ export const authOptions = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
+      await dbConnect();
       if (account?.provider === "google" || account?.provider === "facebook") {
         const customProfile = profile;
         const existingUser = await User.findOne({ email: user.email });
@@ -90,7 +100,6 @@ export const authOptions = {
         }
         return true;
       }
-      return true;
     },
     async jwt({ token, account, user }) {
       if (account) {
@@ -120,13 +129,12 @@ export const authOptions = {
       // If session.user.email exists, try to fetch more detailed user data from DB
       if (session.user?.email) {
         try {
+          await dbConnect();
           const dbuser = await User.findOne({ email: session.user.email }).lean();
           if (dbuser) {
             session.user.id = dbuser._id.toString();
             session.user.email = dbuser.email;
             session.user.name = `${dbuser.firstName} ${dbuser.lastName}` || session.user.name;
-            // Add any other fields you want to expose in the session
-            // For example: session.user.role = dbuser.role;
           } else {
             console.warn("No user found for email:", session.user.email);
           }
