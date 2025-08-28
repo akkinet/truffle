@@ -18,7 +18,7 @@ const clientPromise = client.connect();
 export const authOptions = {
   adapter: MongoDBAdapter(clientPromise), // <-- Use clientPromise here
   session: {
-    strategy: "database",
+    strategy: "jwt",
   },
   providers: [
     GoogleProvider({
@@ -70,8 +70,8 @@ export const authOptions = {
   },
   callbacks: {
     async signIn({ user, account, profile }) {
-      await dbConnect();
-      if (account?.provider === "google" || account?.provider === "facebook") {
+      if (account?.provider === "google" || account?.provider === "facebook" || account?.provider === "credentials") {
+        await dbConnect();
         const existingUser = await User.findOne({ email: user.email });
 
         if (existingUser) {
