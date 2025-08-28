@@ -40,7 +40,7 @@ export const POST = async (req) => {
 
     <p>To reset your password, please click the button below:</p>
 
-    <a href="${baseURL}/password-reset?token=${token}" class="button" style=" color : white">Reset Password</a>
+    <a href="${baseURL}/auth/password-reset?token=${token}" class="button" style=" color : white">Reset Password</a>
 
     <p>This link will expire in 2 hours.</p>
 
