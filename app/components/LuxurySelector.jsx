@@ -7,7 +7,6 @@ const options = [
   "Private jets",
   "Luxury Yachts",
   "Luxury Villa",
-  "Luxury Villa",
   "Luxury Cars",
 ];
 

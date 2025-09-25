@@ -14,6 +14,7 @@ import Signup4 from "../../public/Signup4.png";
 export default function MembershipModal({
   isOpen,
   onClose,
+  user = null, // Add user prop for logged-in users
 }) {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -21,12 +22,15 @@ export default function MembershipModal({
     email: '',
     password: '',
     confirmPassword: '',
+    membershipType: 'free', // Default to free membership
     receiveUpdates: false
   });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentData, setPaymentData] = useState(null);
 
   useEffect(() => {
     if (isOpen) document.body.style.overflow = "hidden";
@@ -36,6 +40,58 @@ export default function MembershipModal({
       document.body.style.overflow = "auto";
     };
   }, [isOpen]);
+
+  // Auto-populate fields for logged-in users
+  useEffect(() => {
+    if (user && isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        receiveUpdates: user.receiveUpdates || false
+      }));
+    }
+  }, [user, isOpen]);
+
+  // Check for payment confirmation URL parameters
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isOpen) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const paymentConfirmed = urlParams.get('payment_confirmed');
+      const paymentRecordId = urlParams.get('paymentRecordId');
+
+      if (paymentConfirmed === '1' && paymentRecordId) {
+        fetchPaymentData(paymentRecordId);
+      }
+    }
+  }, [isOpen]);
+
+  const fetchPaymentData = async (paymentRecordId) => {
+    try {
+      const response = await fetch(`/api/payments/status?paymentRecordId=${paymentRecordId}`);
+      const data = await response.json();
+
+      if (response.ok && data.status === 'succeeded') {
+        setPaymentConfirmed(true);
+        setPaymentData(data);
+        
+        // Prefill form with tempUserPayload
+        if (data.tempUserPayload) {
+          setFormData(prev => ({
+            ...prev,
+            firstName: data.tempUserPayload.firstName || '',
+            lastName: data.tempUserPayload.lastName || '',
+            email: data.tempUserPayload.email || '',
+            membershipType: data.membershipType || 'free',
+            receiveUpdates: data.tempUserPayload.receiveUpdates || false
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching payment data:', error);
+    }
+  };
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -72,18 +128,20 @@ export default function MembershipModal({
       newErrors.email = "Please enter a valid email address";
     }
 
-    // Password validation
-    if (!formData.password) {
-      newErrors.password = "Password is required";
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = "Password must be 8+ chars with uppercase, lowercase & number";
-    }
+    // Password validation - only for new users (not logged-in users)
+    if (!user) {
+      if (!formData.password) {
+        newErrors.password = "Password is required";
+      } else if (!validatePassword(formData.password)) {
+        newErrors.password = "Password must be 8+ chars with uppercase, lowercase & number";
+      }
 
-    // Confirm Password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      // Confirm Password validation
+      if (!formData.confirmPassword) {
+        newErrors.confirmPassword = "Please confirm your password";
+      } else if (formData.password !== formData.confirmPassword) {
+        newErrors.confirmPassword = "Passwords do not match";
+      }
     }
 
     setErrors(newErrors);
@@ -96,6 +154,96 @@ export default function MembershipModal({
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handlePaidMembership = async () => {
+    if (!validateForm()) {
+      toast.error("Please fix the validation errors");
+      return;
+    }
+
+    setLoading(true);
+    
+    try {
+      // Create Stripe checkout session with user data (payment-first flow)
+        const checkoutResponse = await fetch('/api/payments/create-checkout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: formData.email.trim().toLowerCase(),
+            membershipType: formData.membershipType,
+            name: `${formData.firstName.trim()} ${formData.lastName.trim()}`,
+            userId: user?.id || null, // Pass userId for logged-in users
+            signupPayload: user ? null : {
+              firstName: formData.firstName.trim(),
+              lastName: formData.lastName.trim(),
+              email: formData.email.trim().toLowerCase(),
+              receiveUpdates: formData.receiveUpdates
+            }
+          }),
+        });
+
+      const checkoutData = await checkoutResponse.json();
+
+      if (checkoutResponse.ok && checkoutData.checkoutUrl) {
+        // Store password temporarily (in a real app, you'd handle this more securely)
+        sessionStorage.setItem('tempPassword', formData.password);
+        sessionStorage.setItem('paymentRecordId', checkoutData.paymentRecordId);
+        
+        // Redirect to Stripe Checkout
+        window.location.href = checkoutData.checkoutUrl;
+      } else {
+        toast.error(checkoutData.error || "Payment setup failed. Please try again.");
+      }
+    } catch (error) {
+      toast.error("Network error. Please check your connection and try again.");
+      console.error('Paid membership error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteMembership = async () => {
+    if (!paymentData) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/auth/complete-membership', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          paymentRecordId: paymentData.paymentRecordId,
+          password: formData.password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Store user data and token
+        localStorage.setItem('userLoggedIn', JSON.stringify(data.user));
+        localStorage.setItem('authToken', data.token);
+        
+        toast.success('Membership created successfully! Welcome to Truffle!');
+        
+        // Close modal and redirect
+        setTimeout(() => {
+          onClose();
+          window.location.href = '/';
+        }, 2000);
+      } else {
+        toast.error(data.error || 'Failed to complete membership');
+      }
+    } catch (error) {
+      console.error('Error completing membership:', error);
+      toast.error('An error occurred while completing your membership');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -121,6 +269,7 @@ export default function MembershipModal({
           email: formData.email.trim().toLowerCase(),
           password: formData.password,
           confirmPassword: formData.confirmPassword,
+          membershipType: formData.membershipType,
           receiveUpdates: formData.receiveUpdates
         }),
       });
@@ -136,6 +285,7 @@ export default function MembershipModal({
           email: '',
           password: '',
           confirmPassword: '',
+          membershipType: 'free',
           receiveUpdates: false
         });
         // Close modal after successful registration
@@ -296,55 +446,184 @@ export default function MembershipModal({
               )}
             </div>
 
-            {/* Password */}
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder="Create Password*"
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                className={`bg-transparent border-2 rounded-lg px-3 py-2 md:px-4 md:py-3 pr-10 md:pr-12 outline-none w-full transition-all duration-200 placeholder-gray-400 text-sm md:text-base ${
-                  errors.password 
-                    ? 'border-red-500 focus:border-red-400' 
-                    : 'border-white/50 focus:border-white hover:border-white/70'
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors"
-              >
-                {showPassword ? <FaEyeSlash className="text-sm md:text-base" /> : <FaEye className="text-sm md:text-base" />}
-              </button>
-              {errors.password && (
-                <p className="text-red-400 text-xs mt-1">{errors.password}</p>
-              )}
-            </div>
+            {/* Password - Only show for new users */}
+            {!user && (
+              <>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create Password*"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange('password', e.target.value)}
+                    className={`bg-transparent border-2 rounded-lg px-3 py-2 md:px-4 md:py-3 pr-10 md:pr-12 outline-none w-full transition-all duration-200 placeholder-gray-400 text-sm md:text-base ${
+                      errors.password 
+                        ? 'border-red-500 focus:border-red-400' 
+                        : 'border-white/50 focus:border-white hover:border-white/70'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors"
+                  >
+                    {showPassword ? <FaEyeSlash className="text-sm md:text-base" /> : <FaEye className="text-sm md:text-base" />}
+                  </button>
+                  {errors.password && (
+                    <p className="text-red-400 text-xs mt-1">{errors.password}</p>
+                  )}
+                </div>
 
-            {/* Confirm Password */}
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Re-enter Password*"
-                value={formData.confirmPassword}
-                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                className={`bg-transparent border-2 rounded-lg px-3 py-2 md:px-4 md:py-3 pr-10 md:pr-12 outline-none w-full transition-all duration-200 placeholder-gray-400 text-sm md:text-base ${
-                  errors.confirmPassword 
-                    ? 'border-red-500 focus:border-red-400' 
-                    : 'border-white/50 focus:border-white hover:border-white/70'
-                }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors"
-              >
-                {showConfirmPassword ? <FaEyeSlash className="text-sm md:text-base" /> : <FaEye className="text-sm md:text-base" />}
-              </button>
-              {errors.confirmPassword && (
-                <p className="text-red-400 text-xs mt-1">{errors.confirmPassword}</p>
-              )}
-            </div>
+                {/* Confirm Password */}
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Re-enter Password*"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    className={`bg-transparent border-2 rounded-lg px-3 py-2 md:px-4 md:py-3 pr-10 md:pr-12 outline-none w-full transition-all duration-200 placeholder-gray-400 text-sm md:text-base ${
+                      errors.confirmPassword 
+                        ? 'border-red-500 focus:border-red-400' 
+                        : 'border-white/50 focus:border-white hover:border-white/70'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 md:right-4 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white transition-colors"
+                  >
+                    {showConfirmPassword ? <FaEyeSlash className="text-sm md:text-base" /> : <FaEye className="text-sm md:text-base" />}
+                  </button>
+                  {errors.confirmPassword && (
+                    <p className="text-red-400 text-xs mt-1">{errors.confirmPassword}</p>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Payment Confirmation Section */}
+            {paymentConfirmed && paymentData && (
+              <div className="space-y-4 mb-6 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <div className="text-green-500 text-2xl">✓</div>
+                  <h3 className="text-lg font-semibold text-white">Payment Confirmed</h3>
+                </div>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Membership Type:</span>
+                    <span className="text-white font-medium">
+                      {paymentData.membershipType.charAt(0).toUpperCase() + paymentData.membershipType.slice(1)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Amount Paid:</span>
+                    <span className="text-white font-medium">${(paymentData.amount / 100).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Transaction ID:</span>
+                    <span className="text-white font-mono text-xs">
+                      {paymentData.stripeData?.stripePaymentId || paymentData.sessionId}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-3">
+                  <button
+                    onClick={handleCompleteMembership}
+                    disabled={loading}
+                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-green-600/50 text-white py-3 px-6 rounded-lg font-semibold transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <FaSpinner className="animate-spin" />
+                        Creating Membership...
+                      </>
+                    ) : (
+                      'Create Membership'
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Membership Selection */}
+            {!paymentConfirmed && (
+              <div className="space-y-3 md:space-y-4">
+                <h3 className="text-sm md:text-base font-semibold text-white">Choose membership type</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                {[
+                  { type: 'free', name: 'Free Membership', price: '$0', description: 'Basic access' },
+                  { type: 'gold', name: 'Gold Membership', price: '$100', description: 'Standard search' },
+                  { type: 'diamond', name: 'Diamond Membership', price: '$500', description: 'Unlimited search' },
+                  { type: 'platinum', name: 'Platinum Membership', price: '$800', description: 'Premium features' }
+                ].map((membership) => (
+                  <label
+                    key={membership.type}
+                    className={`relative flex items-center p-3 md:p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 ${
+                      formData.membershipType === membership.type
+                        ? 'border-white bg-white/10 shadow-lg'
+                        : 'border-white/30 hover:border-white/50'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="membershipType"
+                      value={membership.type}
+                      checked={formData.membershipType === membership.type}
+                      onChange={(e) => handleInputChange('membershipType', e.target.value)}
+                      className="sr-only"
+                    />
+                    <div className="flex items-center justify-between w-full">
+                      <div>
+                        <div className="font-semibold text-white text-sm md:text-base">
+                          {membership.name}
+                        </div>
+                        <div className="text-white/60 text-xs md:text-sm">
+                          {membership.description}
+                        </div>
+                      </div>
+                      <div className="text-white font-bold text-sm md:text-base">
+                        {membership.price}
+                      </div>
+                    </div>
+                    {formData.membershipType === membership.type && (
+                      <div className="absolute top-2 right-2 w-4 h-4 bg-white rounded-full flex items-center justify-center">
+                        <div className="w-2 h-2 bg-[#110400] rounded-full"></div>
+                      </div>
+                    )}
+                  </label>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col md:flex-row gap-3 md:gap-4 mt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleInputChange('membershipType', 'free');
+                    submitHandler(new Event('submit'));
+                  }}
+                  className="flex-1 bg-white/10 border border-white/30 text-white py-2 md:py-3 px-4 md:px-6 rounded-lg hover:bg-white/20 transition-all duration-200 text-sm md:text-base font-medium"
+                >
+                  Setup Later
+                </button>
+                
+                {formData.membershipType !== 'free' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // This will trigger Stripe payment flow
+                      handlePaidMembership();
+                    }}
+                    className="flex-1 bg-white text-[#110400] py-2 md:py-3 px-4 md:px-6 rounded-lg hover:bg-gray-100 transition-all duration-200 text-sm md:text-base font-semibold shadow-lg hover:shadow-xl"
+                  >
+                    Pay Now
+                  </button>
+                )}
+              </div>
+              </div>
+            )}
 
             {/* Terms and Privacy */}
             <div className="text-[10px] md:text-xs mt-3 md:mt-4 leading-snug py-2 text-gray-300">
@@ -390,7 +669,7 @@ export default function MembershipModal({
                   Creating Membership...
                 </>
               ) : (
-                "Create Membership"
+                user ? "Pay Now" : "Create Membership"
               )}
             </button>
 

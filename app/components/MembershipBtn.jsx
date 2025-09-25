@@ -3,7 +3,7 @@
 import { useState } from "react";
 import MembershipModal from "./MembershipModal";
 
-export default function MembershipButton({ label }) {
+export default function MembershipButton({ label, user = null }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -15,7 +15,7 @@ export default function MembershipButton({ label }) {
         {label}
       </button>
 
-      <MembershipModal isOpen={open} onClose={() => setOpen(false)} />
+      <MembershipModal isOpen={open} onClose={() => setOpen(false)} user={user} />
     </>
   );
 }

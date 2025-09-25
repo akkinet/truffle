@@ -7,7 +7,7 @@ export async function POST(req) {
     await dbConnect();
 
     const body = await req.json();
-    const { firstName, lastName, email, password, confirmPassword, receiveUpdates } = body;
+    const { firstName, lastName, email, password, confirmPassword, membershipType = 'free', receiveUpdates } = body;
 
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
       return NextResponse.json({ error: 'All required fields must be provided' }, { status: 400 });
@@ -27,6 +27,8 @@ export async function POST(req) {
       lastName,
       email,
       password,
+      membership: membershipType,
+      membershipStatus: membershipType === 'free' ? 'active' : 'pending',
       receiveUpdates: !!receiveUpdates,
     });
 

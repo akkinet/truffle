@@ -23,6 +23,40 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  membership: {
+    type: String,
+    enum: ['free', 'gold', 'diamond', 'platinum'],
+    default: 'free'
+  },
+  membershipStatus: {
+    type: String,
+    enum: ['active', 'pending', 'cancelled'],
+    default: 'active'
+  },
+  membershipStartedAt: {
+    type: Date,
+    default: Date.now
+  },
+  membershipExpiresAt: {
+    type: Date,
+    default: null // null for lifetime memberships
+  },
+  stripeCustomerId: {
+    type: String,
+    default: null
+  },
+  stripeSubscriptionId: {
+    type: String,
+    default: null
+  },
+  membershipPaidAmount: {
+    type: Number,
+    default: 0
+  },
+  membershipPaymentRef: {
+    type: String,
+    default: null
+  }
 }, { timestamps: true });
 
 userSchema.pre('save', async function (next) {

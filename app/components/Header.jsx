@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import NewMemberModal from "./NewMemberModal";
 import LoginPage from "./LoginModal";
+import MembershipUpgradeModal from "./MembershipUpgradeModal";
 import { signOut, useSession } from "next-auth/react";
 
 const Header = () => {
@@ -10,6 +11,7 @@ const Header = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
   const { data: session } = useSession();
   
   const userDropdownRef = useRef(null);
@@ -99,16 +101,56 @@ const Header = () => {
     return "Local";
   };
 
+  const getUserMembership = () => {
+    if (session?.user?.membership) {
+      return session.user.membership;
+    }
+    if (isLoggedIn?.membership) {
+      return isLoggedIn.membership;
+    }
+    return "free";
+  };
+
+  const getUserMembershipStatus = () => {
+    if (session?.user?.membershipStatus) {
+      return session.user.membershipStatus;
+    }
+    if (isLoggedIn?.membershipStatus) {
+      return isLoggedIn.membershipStatus;
+    }
+    return "active";
+  };
+
+  const getUserMembershipStartedAt = () => {
+    if (session?.user?.membershipStartedAt) {
+      return new Date(session.user.membershipStartedAt).toLocaleDateString();
+    }
+    if (isLoggedIn?.membershipStartedAt) {
+      return new Date(isLoggedIn.membershipStartedAt).toLocaleDateString();
+    }
+    return "N/A";
+  };
+
+  const getUserMembershipPaidAmount = () => {
+    if (session?.user?.membershipPaidAmount) {
+      return session.user.membershipPaidAmount;
+    }
+    if (isLoggedIn?.membershipPaidAmount) {
+      return isLoggedIn.membershipPaidAmount;
+    }
+    return 0;
+  };
+
   return (
     <>
       <div className="px-4 md:px-[10%] flex justify-between items-center pt-[15px] md:pt-[25px] pb-[15px] md:pb-[20px] font-garet bg-gradient-to-b from-[#110400] to-[#0C0300] relative">
         
         {/* Desktop Navigation - Left */}
         <div className="hidden md:flex w-[20%] text-[14px] gap-4 text-white">
-          <p className="cursor-pointer hover:underline">Home</p>
-          <p className="cursor-pointer hover:underline">Services</p>
-          <p className="cursor-pointer hover:underline">Experiences</p>
-          <p className="cursor-pointer hover:underline">About</p>
+          <a href="/" className="cursor-pointer hover:underline">Home</a>
+          <a href="/services" className="cursor-pointer hover:underline">Services</a>
+          <a href="/experiences" className="cursor-pointer hover:underline">Experiences</a>
+          <a href="/about" className="cursor-pointer hover:underline">About</a>
         </div>
 
         {/* Mobile Hamburger Menu */}
@@ -149,12 +191,12 @@ const Header = () => {
 
         {/* Desktop Right Menu */}
         <div className="hidden md:flex w-[20%] text-[14px] gap-4 text-white justify-end items-center">
-          <p
+          <a
+            href="/membership"
             className="cursor-pointer hover:underline whitespace-nowrap"
-            onClick={() => setIsModalOpen(true)}
           >
-            Membership
-          </p>
+            Buy Membership
+          </a>
           
           {session || isLoggedIn ? (
             <div className="relative" ref={userDropdownRef}>
@@ -177,7 +219,7 @@ const Header = () => {
               </button>
               
               {isUserDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-1 z-50 border">
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-md shadow-lg py-1 z-50 border">
                   <div className="px-4 py-2 text-sm text-gray-700 border-b">
                     <p className="font-medium">Email</p>
                     <p className="text-gray-500 break-all text-xs">{getUserEmail()}</p>
@@ -186,6 +228,41 @@ const Header = () => {
                     <p className="font-medium">Provider</p>
                     <p className="text-gray-500 capitalize">{getProviderName()}</p>
                   </div>
+                  <div className="px-4 py-2 text-sm text-gray-700 border-b">
+                    <p className="font-medium">Membership</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        getUserMembership() === 'free' ? 'bg-gray-100 text-gray-600' :
+                        getUserMembership() === 'gold' ? 'bg-yellow-100 text-yellow-700' :
+                        getUserMembership() === 'diamond' ? 'bg-blue-100 text-blue-700' :
+                        getUserMembership() === 'platinum' ? 'bg-purple-100 text-purple-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {getUserMembership().charAt(0).toUpperCase() + getUserMembership().slice(1)}
+                      </span>
+                      <span className={`text-xs ${
+                        getUserMembershipStatus() === 'active' ? 'text-green-600' : 'text-orange-600'
+                      }`}>
+                        {getUserMembershipStatus()}
+                      </span>
+                    </div>
+                    {getUserMembership() !== 'free' && (
+                      <div className="mt-1 text-xs text-gray-500">
+                        <p>Started: {getUserMembershipStartedAt()}</p>
+                        {getUserMembershipPaidAmount() > 0 && (
+                          <p>Paid: ${getUserMembershipPaidAmount()}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {getUserMembership() === 'free' && (
+                    <button
+                      onClick={() => setIsUpgradeModalOpen(true)}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                      Buy Membership
+                    </button>
+                  )}
                   <div
                     onMouseDown={(e) => {
                       e.preventDefault();
@@ -223,7 +300,7 @@ const Header = () => {
               </button>
               
               {isUserDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-md shadow-lg py-1 z-50 border">
+                <div className="absolute right-0 mt-2 w-72 bg-white rounded-md shadow-lg py-1 z-50 border">
                   <div className="px-4 py-2 text-sm text-gray-700 border-b">
                     <p className="font-medium">Email</p>
                     <p className="text-gray-500 break-all">{getUserEmail()}</p>
@@ -231,6 +308,33 @@ const Header = () => {
                   <div className="px-4 py-2 text-sm text-gray-700 border-b">
                     <p className="font-medium">Provider</p>
                     <p className="text-gray-500 capitalize">{getProviderName()}</p>
+                  </div>
+                  <div className="px-4 py-2 text-sm text-gray-700 border-b">
+                    <p className="font-medium">Membership</p>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        getUserMembership() === 'free' ? 'bg-gray-100 text-gray-600' :
+                        getUserMembership() === 'gold' ? 'bg-yellow-100 text-yellow-700' :
+                        getUserMembership() === 'diamond' ? 'bg-blue-100 text-blue-700' :
+                        getUserMembership() === 'platinum' ? 'bg-purple-100 text-purple-700' :
+                        'bg-gray-100 text-gray-600'
+                      }`}>
+                        {getUserMembership().charAt(0).toUpperCase() + getUserMembership().slice(1)}
+                      </span>
+                      <span className={`text-xs ${
+                        getUserMembershipStatus() === 'active' ? 'text-green-600' : 'text-orange-600'
+                      }`}>
+                        {getUserMembershipStatus()}
+                      </span>
+                    </div>
+                    {getUserMembership() !== 'free' && (
+                      <div className="mt-1 text-xs text-gray-500">
+                        <p>Started: {getUserMembershipStartedAt()}</p>
+                        {getUserMembershipPaidAmount() > 0 && (
+                          <p>Paid: ${getUserMembershipPaidAmount()}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={userLogOut}
@@ -275,30 +379,28 @@ const Header = () => {
           {/* Navigation Content */}
           <div className="flex flex-col px-4 pb-4">
             <div className="flex flex-col gap-6 text-white text-[18px]">
-              <p className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
+              <a href="/" className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
                 Home
-              </p>
-              <p className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
+              </a>
+              <a href="/services" className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
                 Services
-              </p>
-              <p className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
+              </a>
+              <a href="/experiences" className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
                 Experiences
-              </p>
-              <p className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
+              </a>
+              <a href="/about" className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
                 About
-              </p>
+              </a>
               
               <hr className="border-gray-600 my-2" />
               
-              <p
+              <a
+                href="/membership"
                 className="cursor-pointer hover:underline transition-colors"
-                onClick={() => {
-                  setIsModalOpen(true);
-                  toggleMobileMenu();
-                }}
+                onClick={toggleMobileMenu}
               >
-                Membership
-              </p>
+                Buy Membership
+              </a>
               
               {!(session || isLoggedIn) && (
                 <p
@@ -320,6 +422,14 @@ const Header = () => {
                     <p className="font-medium text-[16px] mb-2">Logged in as:</p>
                     <p className="text-[14px] text-gray-300 break-all mb-3">{getUserEmail()}</p>
                     <p className="text-[14px] text-gray-400 mb-4">Provider: <span className="capitalize">{getProviderName()}</span></p>
+                    {getUserMembership() === 'free' && (
+                      <button
+                        onClick={() => setIsUpgradeModalOpen(true)}
+                        className="block w-full bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-md text-[14px] transition-colors text-center mb-3"
+                      >
+                        Buy Membership
+                      </button>
+                    )}
                     <div
                       onClick={handleSignOut}
                       className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-[14px] transition-colors cursor-pointer text-center"
@@ -338,6 +448,14 @@ const Header = () => {
       {isModalOpen && <NewMemberModal onClose={() => setIsModalOpen(false)} />}
       {isLoginModalOpen && (
         <LoginPage onClose={() => setIsLoginModalOpen(false)} />
+      )}
+      {isUpgradeModalOpen && (
+        <MembershipUpgradeModal
+          isOpen={isUpgradeModalOpen}
+          onClose={() => setIsUpgradeModalOpen(false)}
+          userEmail={getUserEmail()}
+          userId={isLoggedIn?.id || session?.user?.id}
+        />
       )}
     </>
   );

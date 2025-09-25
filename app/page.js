@@ -1,4 +1,8 @@
+"use client";
+
 import Image from "next/image";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import Header from "./components/Header";
 import HeadingImage from "@/public/Heading.png";
 import Hero1 from "@/public/Hero1.png";
@@ -9,12 +13,62 @@ import CarmellLogo from "@/public/CarmellLogo.png";
 import EventCubeLogo from "@/public/EventCubeLogo.png";
 import SubEmailBG from "@/public/SubEmailBG.png";
 import LuxurySelector from "./components/LuxurySelector";
+import BookingSearch from "./components/BookingSearch";
+import SearchResults from "./components/SearchResults";
+import ItemDetails from "./components/ItemDetails";
 import ServiceSelector from "./components/ServiceSelector";
 import SpotlightLogo from "./components/SpotlightLogo";
 import Footer from "./components/Footer";
 import MembershipButton from "./components/MembershipBtn";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const [searchResults, setSearchResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [userMembership, setUserMembership] = useState('free'); // Default to free membership
+  const [showMembershipModal, setShowMembershipModal] = useState(false);
+  const [user, setUser] = useState(null);
+
+  // Fetch user data when session changes
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetchUserData(session.user.email);
+    } else {
+      setUser(null);
+      setUserMembership('free');
+    }
+  }, [session]);
+
+  const fetchUserData = async (email) => {
+    try {
+      const response = await fetch(`/api/user/profile?email=${email}`);
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        setUserMembership(userData.membership || 'free');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+
+  const handleSearchResults = (results) => {
+    setSearchResults(results);
+  };
+
+  const handleLoading = (isLoading) => {
+    setLoading(isLoading);
+  };
+
+  const handleItemClick = (item) => {
+    setSelectedItem(item);
+  };
+
+  const handleCloseDetails = () => {
+    setSelectedItem(null);
+  };
+
   return (
     <div className="relative">
       <div className="absolute top-[30px] left-0 w-full z-[-1]">
@@ -38,13 +92,30 @@ export default function Home() {
           utmost high quality and personalized touch.
         </h3>
         <div className="mt-[20px]">
-          <MembershipButton label="APPLY MEMBERSHIP" />
+          <MembershipButton label="APPLY MEMBERSHIP" user={user} />
         </div>
 
-        <h2 className="text-left font-maleh font-normal text-[24px] md:text-[32px] ml-[5%] md:ml-[15%] mt-[10%] md:mt-[13%]">
+        <h2 className="text-left font-maleh font-normal text-[24px] md:text-[32px] ml-[5%] md:ml-[15%] mt-[8%] md:mt-[10%]">
           Book An Experience
         </h2>
-        <LuxurySelector />
+        <BookingSearch onSearchResults={handleSearchResults} onLoading={handleLoading} userMembership={userMembership} isLoggedIn={false} onShowMembershipModal={setShowMembershipModal} />
+        
+        {/* Search Results */}
+        {searchResults.length > 0 && (
+          <SearchResults 
+            results={searchResults} 
+            loading={loading}
+            onItemClick={handleItemClick}
+          />
+        )}
+        
+        {/* Item Details Modal */}
+        {selectedItem && (
+          <ItemDetails 
+            item={selectedItem} 
+            onClose={handleCloseDetails}
+          />
+        )}
       </div>
       <div className="relative px-4 md:px-[10%] pt-[40px] pb-[30px] mt-[50px] bg-gradient-to-b from-[#110400] to-[#0C0300]">
         <div className="absolute -top-[100px] left-0 w-full h-[100px] bg-gradient-to-b from-transparent to-[#110400] z-10 pointer-events-none" />
@@ -55,13 +126,14 @@ export default function Home() {
               Who We Are
             </h2>
             <p className="pr-0 md:pr-[5%] text-sm/20 font-garet md:text-base">
-              Lorem Ipsum is simply dummy text of the printing and typesetting
-              industry. Lorem Ipsum has been the industry&apos;s standard dummy
-              text ever since the 1500s, when an unknown printer took a galley
-              of type and scrambled it to make a type specimen book. <br />
+              Truffle is your gateway to the world's most exclusive luxury experiences. 
+              We connect discerning clients with premium services across aviation, 
+              transportation, and bespoke experiences that define sophistication. <br />
               <br />
-              It has survived not only five centuries, but also the leap into
-              electronic typesetting, remaining essentially unchanged.
+              Our platform ensures every interaction meets the highest standards of 
+              excellence, discretion, and professionalism. Whether you're planning a 
+              once-in-a-lifetime journey or seeking regular access to premium services, 
+              Truffle is your trusted partner in the world of luxury.
             </p>
           </div>
           <div className="w-full md:w-[50%] flex items-center justify-center">
@@ -79,18 +151,18 @@ export default function Home() {
             Services
           </h2>
           <ServiceSelector type="Services" />
-          <div className="self-center bg-[#ECECEC] w-[135px] h-[37px] text-center font-nexa font-semibold text-[14px] items-center justify-center flex mx-auto mt-[40px] md:mt-[61px] mb-[60px] md:mb-[100px] text-[#110400] cursor-pointer hover:bg-[#261612] hover:text-[#ECECEC] transition-all duration-300">
+          <a href="/services" className="self-center bg-[#ECECEC] w-[135px] h-[37px] text-center font-nexa font-semibold text-[14px] items-center justify-center flex mx-auto mt-[40px] md:mt-[61px] mb-[60px] md:mb-[100px] text-[#110400] cursor-pointer hover:bg-[#261612] hover:text-[#ECECEC] transition-all duration-300">
             <p>SEE ALL</p>
-          </div>
+          </a>
         </div>
         <div>
           <h2 className="font-maleh text-[32px] md:text-[42px] font-light mt-[80px] md:mt-[127px] mb-[40px] md:mb-[60px] text-center">
             Featured Experiences
           </h2>
           <ServiceSelector type="Experiences" />
-          <div className="self-center bg-[#ECECEC] w-[135px] h-[37px] text-center font-nexa font-semibold text-[14px] items-center justify-center flex mx-auto mt-[40px] md:mt-[61px] mb-[60px] md:mb-[100px] text-[#110400] cursor-pointer hover:bg-[#261612] hover:text-[#ECECEC] transition-all duration-300">
+          <a href="/experiences" className="self-center bg-[#ECECEC] w-[135px] h-[37px] text-center font-nexa font-semibold text-[14px] items-center justify-center flex mx-auto mt-[40px] md:mt-[61px] mb-[60px] md:mb-[100px] text-[#110400] cursor-pointer hover:bg-[#261612] hover:text-[#ECECEC] transition-all duration-300">
             <p>SEE ALL</p>
-          </div>
+          </a>
         </div>
         <div className="flex flex-col md:flex-row justify-between items-center mb-[60px] md:mb-[100px] gap-8">
           <div className="w-full md:w-[50%] flex items-center justify-center">
@@ -109,29 +181,29 @@ export default function Home() {
             <li className="flex items-start">
               <span className="text-white mr-[10px]">✓</span>
               <span className="font-garet font-light text-[14px] md:text-[16px]">
-                Lorem Ipsum is simply dummy text of the printing
+                Exclusive access to premium luxury services worldwide
               </span>
             </li>
             <li className="flex items-start">
               <span className="text-white mr-[10px]">✓</span>
               <span className="font-garet font-light text-[14px] md:text-[16px]">
-                Lorem Ipsum is simply dummy text of the printing
+                Personalized concierge services for all your needs
               </span>
             </li>
             <li className="flex items-start">
               <span className="text-white mr-[10px]">✓</span>
               <span className="font-garet font-light text-[14px] md:text-[16px]">
-                Lorem Ipsum is simply dummy text of the printing
+                Priority booking and special rates from our partner network
               </span>
             </li>
             <li className="flex items-start">
               <span className="text-white mr-[10px]">✓</span>
               <span className="font-garet font-light text-[14px] md:text-[16px]">
-                Lorem Ipsum is simply dummy text of the printing
+                24/7 support and assistance for seamless experiences
               </span>
             </li>
             <div className="mt-[20px]">
-              <MembershipButton label="APPLY MEMBERSHIP" />
+              <MembershipButton label="APPLY MEMBERSHIP" user={user} />
             </div>
             <div className="h-[20px] md:h-[30px]" />
           </ul>
@@ -209,6 +281,43 @@ export default function Home() {
         <SpotlightLogo />
       </div>
       <Footer />
+
+      {/* Anonymous User Membership Modal */}
+      {showMembershipModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-[#110400] rounded-xl border border-white/20 p-6 text-white">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-maleh font-light mb-2">Apply for Membership</h2>
+              <p className="text-white/60 text-sm">
+                To access our luxury search features, please apply for membership
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  setShowMembershipModal(false);
+                  // Open membership modal
+                  const membershipBtn = document.querySelector('[data-membership-btn]');
+                  if (membershipBtn) {
+                    membershipBtn.click();
+                  }
+                }}
+                className="w-full bg-white text-[#110400] py-3 px-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              >
+                Apply for Membership
+              </button>
+              
+              <button
+                onClick={() => setShowMembershipModal(false)}
+                className="w-full bg-white/10 border border-white/30 text-white py-3 px-4 rounded-lg font-semibold hover:bg-white/20 transition-colors"
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

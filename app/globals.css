@@ -11,8 +11,36 @@
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-modal-open {
   animation: modal-open 0.3s ease-in-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-in-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-in-out forwards;
 }
 
 :root {
@@ -30,37 +58,102 @@
 @font-face {
   font-family: "Garet";
   src: url("/fonts/Garet.otf") format("opentype");
-  font-weight: normal;
+  font-weight: 400;
   font-style: normal;
-  font-size: 14px;
+  font-display: swap;
 }
 
 @font-face {
   font-family: "Maleh";
   src: url("/fonts/Maleh.otf") format("opentype");
   font-weight: 300;
-  font-size: 14px;
   font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
   font-family: "Nexa";
   src: url("/fonts/Nexa.ttf") format("opentype");
-  font-size: 14px;
+  font-weight: 400;
   font-style: normal;
+  font-display: swap;
 }
 
+/* Enhanced Typography */
 .font-garet {
-  font-family: "Garet", sans-serif;
+  font-family: "Garet", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 .font-maleh {
-  font-family: "Maleh", sans-serif;
+  font-family: "Maleh", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.02em;
 }
 
 .font-nexa {
-  font-family: "Nexa", sans-serif;
+  font-family: "Nexa", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
+
+/* Responsive Typography */
+.text-responsive-xs {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.text-responsive-sm {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.text-responsive-base {
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.text-responsive-lg {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
+.text-responsive-xl {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+
+.text-responsive-2xl {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.text-responsive-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
+
+@media (min-width: 640px) {
+  .text-responsive-xs { font-size: 0.875rem; }
+  .text-responsive-sm { font-size: 1rem; }
+  .text-responsive-base { font-size: 1.125rem; }
+  .text-responsive-lg { font-size: 1.25rem; }
+  .text-responsive-xl { font-size: 1.5rem; }
+  .text-responsive-2xl { font-size: 1.875rem; }
+  .text-responsive-3xl { font-size: 2.25rem; }
+}
+
+@media (min-width: 1024px) {
+  .text-responsive-xs { font-size: 1rem; }
+  .text-responsive-sm { font-size: 1.125rem; }
+  .text-responsive-base { font-size: 1.25rem; }
+  .text-responsive-lg { font-size: 1.5rem; }
+  .text-responsive-xl { font-size: 1.875rem; }
+  .text-responsive-2xl { font-size: 2.25rem; }
+  .text-responsive-3xl { font-size: 3rem; }
+}
+
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -93,4 +186,38 @@ body {
   background: linear-gradient(to bottom, transparent, #110400);
   z-index: 1;
   pointer-events: none;
+}
+
+/* Input with icon alignment */
+.input-with-icon {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.input-with-icon .icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+}
+
+.input-with-icon input {
+  line-height: normal;
+  padding: 12px 12px 12px 40px;
+  width: 100%;
+}
+
+/* Ensure dropdowns are always visible */
+.dropdown-suggestions {
+  position: absolute !important;
+  z-index: 9999 !important;
+  background: rgba(17, 0, 3, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(8px) !important;
 }
