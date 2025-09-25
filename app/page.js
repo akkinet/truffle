@@ -300,7 +300,13 @@ export default function Home() {
       {showMembershipModal && (
         <MembershipModal
           isOpen={showMembershipModal}
-          onClose={() => setShowMembershipModal(false)}
+          onClose={() => {
+            setShowMembershipModal(false);
+            // Refresh user data after modal closes (in case membership was upgraded)
+            if (session?.user?.email) {
+              fetchUserData(session.user.email);
+            }
+          }}
           user={user}
         />
       )}
