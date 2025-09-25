@@ -15,6 +15,7 @@ export default function MembershipModal({
   isOpen,
   onClose,
   user = null, // Add user prop for logged-in users
+  initialMembershipType = null,
 }) {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -49,10 +50,13 @@ export default function MembershipModal({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
-        receiveUpdates: user.receiveUpdates || false
+        receiveUpdates: user.receiveUpdates || false,
+        membershipType: initialMembershipType || prev.membershipType
       }));
+    } else if (isOpen && initialMembershipType) {
+      setFormData(prev => ({ ...prev, membershipType: initialMembershipType }));
     }
-  }, [user, isOpen]);
+  }, [user, isOpen, initialMembershipType]);
 
   // Check for payment confirmation URL parameters
   useEffect(() => {
@@ -249,6 +253,12 @@ export default function MembershipModal({
 
   const submitHandler = async (e) => {
     e.preventDefault();
+
+    // If user exists (logged-in), trigger payment flow directly
+    if (user) {
+      await handlePaidMembership();
+      return;
+    }
     
     if (!validateForm()) {
       toast.error("Please fix the validation errors");

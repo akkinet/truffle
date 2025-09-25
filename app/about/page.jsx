@@ -30,7 +30,7 @@ export default function AboutPage() {
               </h2>
               <div className="space-y-4 text-gray-300 leading-relaxed">
                 <p>
-                  At Truffle, we believe that luxury is not just about possessions—it's about 
+                  At Truffle, we believe that luxury is not just about possessions���it's about 
                   experiences that elevate your lifestyle and create lasting memories. Our mission 
                   is to curate and deliver the world's most exclusive services, from private jets 
                   and luxury yachts to bespoke experiences that define sophistication.
@@ -48,12 +48,51 @@ export default function AboutPage() {
               </div>
             </div>
             <div className="relative">
-              <div className="aspect-square bg-gradient-to-br from-yellow-600/20 to-yellow-800/20 rounded-lg p-8 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-6xl md:text-8xl text-yellow-500 mb-4">✈️</div>
-                  <p className="text-white font-semibold text-lg">Premium Experiences</p>
+              {/* Auto-rotating premium flight images */}
+              <div className="relative overflow-hidden rounded-lg">
+                <div className="w-full h-64 md:h-80 lg:h-96 relative">
+                  <img
+                    src="https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?q=80&w=1600&auto=format&fit=crop"
+                    alt="Private jet interior"
+                    className="absolute inset-0 w-full h-full object-cover animate-[fadeSlide_18s_infinite]"
+                  />
+                  <img
+                    src="https://images.unsplash.com/photo-1517872006492-2f23f0b1d4c3?q=80&w=1600&auto=format&fit=crop"
+                    alt="Runway takeoff"
+                    className="absolute inset-0 w-full h-full object-cover animate-[fadeSlide2_18s_infinite]"
+                  />
+                  <img
+                    src="https://images.unsplash.com/photo-1527871064652-1a5cc1b8cf71?q=80&w=1600&auto=format&fit=crop"
+                    alt="Cabin luxury"
+                    className="absolute inset-0 w-full h-full object-cover animate-[fadeSlide3_18s_infinite]"
+                  />
                 </div>
               </div>
+
+              <style jsx>{`
+                @keyframes fadeSlide {
+                  0% { opacity: 1; }
+                  30% { opacity: 1; }
+                  33% { opacity: 0; }
+                  97% { opacity: 0; }
+                  100% { opacity: 1; }
+                }
+                @keyframes fadeSlide2 {
+                  0% { opacity: 0; }
+                  30% { opacity: 0; }
+                  33% { opacity: 1; }
+                  63% { opacity: 1; }
+                  66% { opacity: 0; }
+                  100% { opacity: 0; }
+                }
+                @keyframes fadeSlide3 {
+                  0% { opacity: 0; }
+                  63% { opacity: 0; }
+                  66% { opacity: 1; }
+                  97% { opacity: 1; }
+                  100% { opacity: 0; }
+                }
+              `}</style>
             </div>
           </div>
         </div>

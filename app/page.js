@@ -95,10 +95,10 @@ export default function Home() {
           <MembershipButton label="APPLY MEMBERSHIP" user={user} />
         </div>
 
-        <h2 className="text-left font-maleh font-normal text-[24px] md:text-[32px] ml-[5%] md:ml-[15%] mt-[8%] md:mt-[10%]">
+        <h2 className="text-left font-maleh font-normal text-[24px] md:text-[32px] ml-[5%] md:ml-[15%] mt-[8%] md:mt-[0%]">
           Book An Experience
         </h2>
-        <BookingSearch onSearchResults={handleSearchResults} onLoading={handleLoading} userMembership={userMembership} isLoggedIn={false} onShowMembershipModal={setShowMembershipModal} />
+        <BookingSearch onSearchResults={handleSearchResults} onLoading={handleLoading} userMembership={userMembership} isLoggedIn={!!user} onShowMembershipModal={setShowMembershipModal} />
         
         {/* Search Results */}
         {searchResults.length > 0 && (

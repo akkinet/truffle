@@ -160,13 +160,6 @@ const LoginPage = ({ onClose }) => {
             <Image src={GoogleIcon} height={16} width={16} alt="Google" />
             Google
           </button>
-          {/* <button 
-            onClick={() => handleSocialLogin("facebook")} 
-            className="bg-white text-black text-sm font-medium w-[48%] justify-center py-3 rounded-lg flex items-center gap-2 shadow-lg hover:bg-gray-100 transition-all duration-200 transform hover:-translate-y-0.5 font-nexa"
-          >
-            <Image src={FacebookIcon} height={16} width={16} alt="Facebook" />
-            Facebook
-          </button> */}
         </div>
 
         {/* Divider */}

@@ -5,6 +5,7 @@ import NewMemberModal from "./NewMemberModal";
 import LoginPage from "./LoginModal";
 import MembershipUpgradeModal from "./MembershipUpgradeModal";
 import { signOut, useSession } from "next-auth/react";
+import { FaBars, FaTimes, FaChevronDown, FaUserCircle } from "react-icons/fa";
 
 const Header = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -160,21 +161,11 @@ const Header = () => {
             className="text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded-md p-1"
             aria-label="Toggle mobile menu"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              {isMobileMenuOpen ? (
-                <path d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
+            {isMobileMenuOpen ? (
+              <FaTimes className="w-6 h-6" />
+            ) : (
+              <FaBars className="w-6 h-6" />
+            )}
           </button>
         </div>
 
@@ -208,14 +199,7 @@ const Header = () => {
                 <span className="truncate min-w-0 max-w-[200px]">
                   {getUserEmail()}
                 </span>
-                <svg
-                  className={`w-4 h-4 transition-transform flex-shrink-0 ${isUserDropdownOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                <FaChevronDown className={`w-4 h-4 transition-transform flex-shrink-0 ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               
               {isUserDropdownOpen && (
@@ -256,12 +240,12 @@ const Header = () => {
                     )}
                   </div>
                   {getUserMembership() === 'free' && (
-                    <button
-                      onClick={() => setIsUpgradeModalOpen(true)}
+                    <a
+                      href="/membership"
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                     >
                       Buy Membership
-                    </button>
+                    </a>
                   )}
                   <div
                     onMouseDown={(e) => {
@@ -294,9 +278,7 @@ const Header = () => {
                 className="text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded-md p-1"
                 title={getUserEmail()}
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                <FaUserCircle className="w-6 h-6" />
               </button>
               
               {isUserDropdownOpen && (
@@ -362,17 +344,7 @@ const Header = () => {
               className="text-white focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 rounded-md p-1"
               aria-label="Close mobile menu"
             >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <FaTimes className="w-6 h-6" />
             </button>
           </div>
 

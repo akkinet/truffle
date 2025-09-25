@@ -135,7 +135,7 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
       case 'private_jets':
       case 'charter_flights':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 items-end">
             {/* From */}
             <div className="space-y-1">
               <label className="block text-xs font-medium text-white/80">From</label>
@@ -211,7 +211,7 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
       case 'luxury_cars':
       case 'super_cars':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
             {/* Pickup Location */}
             <div className="space-y-1">
               <label className="block text-xs font-medium text-white/80">Pickup Location</label>
@@ -258,7 +258,7 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
 
       case 'helicopters':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-end">
             {/* From */}
             <div className="space-y-1">
               <label className="block text-xs font-medium text-white/80">From</label>
@@ -318,7 +318,7 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
 
       case 'yachts':
         return (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
             {/* Departure Marina */}
             <div className="space-y-1">
               <label className="block text-xs font-medium text-white/80">Departure Marina</label>
@@ -369,15 +369,15 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
   };
 
   return (
-    <div className="lg:mx-[13%] bg-[#110003]/[0.44] border border-white border-opacity-25 backdrop-blur-[8.9px] text-white font-nexa mb-[5%] rounded-lg overflow-hidden">
+    <div className="lg:mx-[13%] bg-gradient-to-r from-[#1b0b06] to-[#120705] border border-white/20 backdrop-blur-[8.9px] text-white font-nexa mb-[5%] rounded-lg overflow-hidden shadow-xl">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#261612] to-[#110400] px-6 py-4 border-b border-white/25">
+      <div className="bg-gradient-to-r from-[#2c1914] to-[#120705] px-6 py-4 border-b border-white/20">
         <h2 className="text-xl font-maleh font-light text-white mb-1">Book Your Luxury Experience</h2>
         <p className="text-white/60 text-sm">Discover premium travel options tailored to your needs</p>
       </div>
 
       {/* Category Selection - Radio Style */}
-      <div className="px-6 py-4 bg-[#110003]/[0.44] border-b border-white/25">
+      <div className="px-6 py-4 bg-white/5 border-b border-white/20">
         <h3 className="text-sm font-medium text-white mb-3">Select Service Type</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {categoryOptions.map((option) => {
@@ -417,7 +417,7 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
                     onShowMembershipModal(true);
                   }
                 }}
-                className="bg-gradient-to-r from-white to-white/90 text-black px-8 py-3 rounded-lg font-semibold text-sm hover:from-white/90 hover:to-white transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-500 text-black px-8 py-3 rounded-lg font-semibold text-sm hover:from-yellow-500 hover:to-amber-600 transform hover:scale-105 transition-all duration-200 shadow-[0_8px_16px_rgba(234,179,8,0.35)]"
               >
                 <FaSearch className="inline mr-2" />
                 Search Luxury Options
@@ -437,7 +437,7 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
             ) : (
               <button 
                 type="submit"
-                className="bg-gradient-to-r from-white to-white/90 text-black px-8 py-3 rounded-lg font-semibold text-sm hover:from-white/90 hover:to-white transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-amber-500 text-black px-8 py-3 rounded-lg font-semibold text-sm hover:from-yellow-500 hover:to-amber-600 transform hover:scale-105 transition-all duration-200 shadow-[0_8px_16px_rgba(234,179,8,0.35)]"
               >
                 <FaSearch className="inline mr-2" />
                 Search Luxury Options
