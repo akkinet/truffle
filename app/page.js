@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Header from "./components/Header";
 import HeadingImage from "@/public/Heading.png";
 import Hero1 from "@/public/Hero1.png";
@@ -20,15 +21,28 @@ import ServiceSelector from "./components/ServiceSelector";
 import SpotlightLogo from "./components/SpotlightLogo";
 import Footer from "./components/Footer";
 import MembershipButton from "./components/MembershipBtn";
+import MembershipModal from "./components/MembershipModal";
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [userMembership, setUserMembership] = useState('free'); // Default to free membership
   const [showMembershipModal, setShowMembershipModal] = useState(false);
   const [user, setUser] = useState(null);
+
+  // Check for payment confirmation URL parameters
+  useEffect(() => {
+    const paymentConfirmed = searchParams.get('payment_confirmed');
+    const paymentRecordId = searchParams.get('paymentRecordId');
+    
+    if (paymentConfirmed === '1' && paymentRecordId) {
+      // Open membership modal with payment confirmed
+      setShowMembershipModal(true);
+    }
+  }, [searchParams]);
 
   // Fetch user data when session changes
   useEffect(() => {
@@ -98,7 +112,7 @@ export default function Home() {
         <h2 className="text-left font-maleh font-normal text-[24px] md:text-[32px] ml-[5%] md:ml-[15%] mt-[8%] md:mt-[10%]">
           Book An Experience
         </h2>
-        <BookingSearch onSearchResults={handleSearchResults} onLoading={handleLoading} userMembership={userMembership} isLoggedIn={false} onShowMembershipModal={setShowMembershipModal} />
+        <BookingSearch onSearchResults={handleSearchResults} onLoading={handleLoading} userMembership={userMembership} isLoggedIn={!!session} onShowMembershipModal={setShowMembershipModal} />
         
         {/* Search Results */}
         {searchResults.length > 0 && (
@@ -284,39 +298,11 @@ export default function Home() {
 
       {/* Anonymous User Membership Modal */}
       {showMembershipModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md bg-[#110400] rounded-xl border border-white/20 p-6 text-white">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-maleh font-light mb-2">Apply for Membership</h2>
-              <p className="text-white/60 text-sm">
-                To access our luxury search features, please apply for membership
-              </p>
-            </div>
-            
-            <div className="space-y-4">
-              <button
-                onClick={() => {
-                  setShowMembershipModal(false);
-                  // Open membership modal
-                  const membershipBtn = document.querySelector('[data-membership-btn]');
-                  if (membershipBtn) {
-                    membershipBtn.click();
-                  }
-                }}
-                className="w-full bg-white text-[#110400] py-3 px-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-              >
-                Apply for Membership
-              </button>
-              
-              <button
-                onClick={() => setShowMembershipModal(false)}
-                className="w-full bg-white/10 border border-white/30 text-white py-3 px-4 rounded-lg font-semibold hover:bg-white/20 transition-colors"
-              >
-                Maybe Later
-              </button>
-            </div>
-          </div>
-        </div>
+        <MembershipModal
+          isOpen={showMembershipModal}
+          onClose={() => setShowMembershipModal(false)}
+          user={user}
+        />
       )}
     </div>
   );

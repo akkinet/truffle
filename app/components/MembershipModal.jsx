@@ -669,7 +669,7 @@ export default function MembershipModal({
                   Creating Membership...
                 </>
               ) : (
-                user ? "Pay Now" : "Create Membership"
+                "Create Membership"
               )}
             </button>
 
