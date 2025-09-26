@@ -35,7 +35,7 @@ const paymentSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'succeeded', 'failed', 'expired'],
+    enum: ['pending', 'succeeded', 'failed', 'expired', 'consumed'],
     default: 'pending'
   },
   stripeData: {
@@ -60,6 +60,10 @@ const paymentSchema = new mongoose.Schema({
       // Expire after 24 hours
       return new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
+  },
+  processed: {
+    type: Boolean,
+    default: false
   }
 }, { timestamps: true });
 
@@ -74,6 +78,11 @@ paymentSchema.index({ email: 1 });
 paymentSchema.index({ status: 1 });
 paymentSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-const Payment = mongoose.models.Payment || mongoose.model('Payment', paymentSchema);
+// Clear the model cache to ensure schema changes take effect
+if (mongoose.models.Payment) {
+  delete mongoose.models.Payment;
+}
+
+const Payment = mongoose.model('Payment', paymentSchema);
 
 export default Payment;

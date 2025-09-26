@@ -47,8 +47,8 @@ export async function POST(req) {
 
       await existingUser.save();
 
-      // Mark payment record as consumed
-      paymentRecord.status = 'consumed';
+      // Mark payment record as processed
+      paymentRecord.processed = true;
       await paymentRecord.save();
 
       // Send confirmation email
@@ -104,8 +104,8 @@ export async function POST(req) {
 
         await user.save();
 
-        // Mark payment record as consumed
-        paymentRecord.status = 'consumed';
+        // Mark payment record as processed
+        paymentRecord.processed = true;
         await paymentRecord.save();
 
         // Send confirmation email
@@ -172,8 +172,8 @@ export async function POST(req) {
 
         await user.save();
 
-        // Mark payment record as consumed
-        paymentRecord.status = 'consumed';
+        // Mark payment record as processed
+        paymentRecord.processed = true;
         await paymentRecord.save();
 
         // Send confirmation email
