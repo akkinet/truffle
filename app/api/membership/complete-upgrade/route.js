@@ -61,9 +61,7 @@ export async function POST(req) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        membershipType: user.membership,
-        paymentAmount: user.membershipPaidAmount,
-        paymentRef: user.membershipPaymentRef
+        membershipType: user.membership
       });
       console.log('Membership upgrade confirmation email sent to:', user.email);
     } catch (emailError) {

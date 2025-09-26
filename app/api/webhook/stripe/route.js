@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import dbConnect from '../../../../lib/mongodb';
 import Payment from '../../../../models/Payment';
+import User from '../../../../models/User';
+import { sendMembershipConfirmationEmail } from '../../../../lib/sendEmail';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -135,9 +137,7 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
-            membershipType: user.membership,
-            paymentAmount: user.membershipPaidAmount,
-            paymentRef: user.membershipPaymentRef
+            membershipType: user.membership
           });
           console.log('Upgrade confirmation email sent to:', user.email);
         } catch (emailError) {

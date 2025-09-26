@@ -1,12 +1,11 @@
 import { MongoClient } from 'mongodb';
-
-const MONGODB_URI = 'mongodb+srv://hexerve:0BRYKsZgxIP4hCde@air-aviation.pww5b.mongodb.net/?retryWrites=true&w=majority&appName=air-aviation';
-const DB_NAME = 'trufle-admin';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../../auth/[...nextauth]/route';
 
 async function connectToDatabase() {
-  const client = new MongoClient(MONGODB_URI);
+  const client = new MongoClient(process.env.MONGODB_URI);
   await client.connect();
-  const db = client.db(DB_NAME);
+  const db = client.db(process.env.MONGODB_DB);
   return { client, db };
 }
 
@@ -18,9 +17,10 @@ export async function GET(request) {
     const url = new URL(request.url);
     const searchParams = url.searchParams;
     
-    // Check membership restrictions
-    const userMembership = searchParams.get('membership') || 'free';
-    const userEmail = searchParams.get('userEmail');
+    // Get user session to check membership
+    const session = await getServerSession(authOptions);
+    const userMembership = session?.user?.membership || 'free';
+    const userEmail = session?.user?.email;
     
     // If user has free membership and is trying to search, return restriction message
     if (userMembership === 'free' && (searchParams.get('category') || searchParams.get('from') || searchParams.get('to'))) {

@@ -263,7 +263,7 @@ export default function MembershipModal({
         },
         body: JSON.stringify({
           paymentRecordId: paymentData.paymentRecordId,
-          password: formData.password,
+          password: user ? undefined : formData.password, // Don't send password for logged-in users
           isUpgrade: !!user // Flag to indicate if this is an upgrade
         }),
       });

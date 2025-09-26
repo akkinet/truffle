@@ -24,7 +24,7 @@ import MembershipButton from "./components/MembershipBtn";
 import MembershipModal from "./components/MembershipModal";
 
 export default function Home() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const searchParams = useSearchParams();
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -44,28 +44,17 @@ export default function Home() {
     }
   }, [searchParams]);
 
-  // Fetch user data when session changes
+  // Update membership from session
   useEffect(() => {
-    if (session?.user?.email) {
-      fetchUserData(session.user.email);
+    if (session?.user) {
+      setUserMembership(session.user.membership || 'free');
+      setUser(session.user);
     } else {
       setUser(null);
       setUserMembership('free');
     }
   }, [session]);
 
-  const fetchUserData = async (email) => {
-    try {
-      const response = await fetch(`/api/user/profile?email=${email}`);
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        setUserMembership(userData.membership || 'free');
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-    }
-  };
 
   const handleSearchResults = (results) => {
     setSearchResults(results);
@@ -300,12 +289,10 @@ export default function Home() {
       {showMembershipModal && (
         <MembershipModal
           isOpen={showMembershipModal}
-          onClose={() => {
+          onClose={async () => {
             setShowMembershipModal(false);
-            // Refresh user data after modal closes (in case membership was upgraded)
-            if (session?.user?.email) {
-              fetchUserData(session.user.email);
-            }
+            // Refresh session to get updated membership info
+            await update();
           }}
           user={user}
         />

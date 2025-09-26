@@ -47,12 +47,32 @@ export const authOptions = {
             return null;
           }
 
+          // Check if this is an OAuth user trying to authenticate with credentials
+          // OAuth users have hashed "oauth-user" password
           const isValid = await bcrypt.compare(credentials.password, user.password);
+          
+          // Special case: if user is trying to authenticate with "oauth-user" and it's an OAuth user
+          if (!isValid && credentials.password === "oauth-user") {
+            // Check if this user was created via OAuth (has hashed "oauth-user" password)
+            const isOAuthUser = await bcrypt.compare("oauth-user", user.password);
+            if (isOAuthUser) {
+              return {
+                id: user._id.toString(),
+                email: user.email,
+                name: `${user.firstName} ${user.lastName}` || null,
+                membership: user.membership,
+                membershipStatus: user.membershipStatus,
+              };
+            }
+          }
+          
           if (isValid) {
             return {
               id: user._id.toString(),
               email: user.email,
               name: `${user.firstName} ${user.lastName}` || null,
+              membership: user.membership,
+              membershipStatus: user.membershipStatus,
             };
           } else {
             return null;
@@ -75,22 +95,32 @@ export const authOptions = {
         const existingUser = await User.findOne({ email: user.email });
 
         if (existingUser) {
+          // Update user object with membership info for JWT token
+          user.membership = existingUser.membership;
+          user.membershipStatus = existingUser.membershipStatus;
           return true;
         } else {
+          // Hash the OAuth password before saving
+          const salt = await bcrypt.genSalt(10);
+          const hashedPassword = await bcrypt.hash("oauth-user", salt);
+          
           const newUser = new User({
             email: user.email,
             firstName: profile.first_name || (profile.name?.split(" ")[0] || "Unknown"),
             lastName: profile.last_name || (profile.name?.split(" ")[1] || "Unknown"),
-            password: "oauth-user",
+            password: hashedPassword,
             receiveUpdates: false,
           });
           await newUser.save();
-          console.log(`Created new user ${user.email}`);
+          console.log(`Created new OAuth user ${user.email} with hashed password`);
+          // Set membership info for new OAuth users
+          user.membership = newUser.membership;
+          user.membershipStatus = newUser.membershipStatus;
         }
       }
       return true;
     },
-    async jwt({ token, account, user }) {
+    async jwt({ token, account, user, trigger }) {
       if (account) {
         token.provider = account.provider;
       }
@@ -99,7 +129,24 @@ export const authOptions = {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        token.membership = user.membership;
+        token.membershipStatus = user.membershipStatus;
       }
+      
+      // Refresh user data when session is updated
+      if (trigger === 'update' && token.email) {
+        try {
+          await dbConnect();
+          const updatedUser = await User.findOne({ email: token.email }).lean();
+          if (updatedUser) {
+            token.membership = updatedUser.membership;
+            token.membershipStatus = updatedUser.membershipStatus;
+          }
+        } catch (error) {
+          console.error('Error refreshing user data:', error);
+        }
+      }
+      
       return token;
     },
     async session({ session, token }) {
@@ -109,6 +156,8 @@ export const authOptions = {
           email: token.email || null,
           name: token.name || null,
           provider: token.provider || null,
+          membership: token.membership || 'free',
+          membershipStatus: token.membershipStatus || 'active',
         };
       }
 
