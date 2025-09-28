@@ -67,7 +67,7 @@ const GooglePlacesAutocomplete = ({
       service.getPlacePredictions({
         input: query,
         types: ['establishment', 'geocode'],
-        componentRestrictions: { country: 'in' } // Restrict to India
+        // componentRestrictions: { country: 'in' } // Restrict to India
       }, (predictions, status) => {
         setIsLoading(false);
         

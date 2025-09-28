@@ -2,6 +2,8 @@ import { MongoClient } from 'mongodb';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
+export const dynamic = 'force-dynamic';
+
 async function connectToDatabase() {
   const client = new MongoClient(process.env.MONGODB_URI);
   await client.connect();
@@ -98,8 +100,8 @@ export async function GET(request) {
       case 'luxury_cars':
         collection = db.collection('luxury_cars');
         break;
-      case 'super_cars':
-        collection = db.collection('super_cars');
+        case 'super_cars':
+          collection = db.collection('super_cars');
         break;
       case 'helicopters':
         collection = db.collection('helicopters');
@@ -118,7 +120,8 @@ export async function GET(request) {
     }
     
     // Build query based on category and parameters
-    let query = { available: true };
+    // let query = { available: true };
+    let query = { availability: "available" };
     
     // Location-based searches
     if (category === 'private_jets') {

@@ -15,6 +15,7 @@ export default function MembershipModal({
   isOpen,
   onClose,
   user = null, // Add user prop for logged-in users
+  onSessionUpdate = null, // Add session update callback
 }) {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -115,8 +116,10 @@ export default function MembershipModal({
 
       if (response.ok && data.success) {
         console.log('✅ User membership automatically updated to:', data.user.membership);
-        // Update the user object in the parent component if needed
-        // The parent component should refresh user data after this
+        // Update the session to reflect new membership
+        if (onSessionUpdate) {
+          await onSessionUpdate();
+        }
       } else {
         console.error('Failed to update user membership:', data.error);
       }
@@ -274,6 +277,10 @@ export default function MembershipModal({
         if (user) {
           // For existing users, just show success message
           toast.success(`Membership upgraded to ${data.user.membership} successfully!`);
+          // Update the session to reflect new membership
+          if (onSessionUpdate) {
+            await onSessionUpdate();
+          }
         } else {
           // For new users, store user data and token
           localStorage.setItem('userLoggedIn', JSON.stringify(data.user));

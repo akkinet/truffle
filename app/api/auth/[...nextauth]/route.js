@@ -92,12 +92,14 @@ export const authOptions = {
     async signIn({ user, account, profile }) {
       if (account?.provider === "google" || account?.provider === "facebook" || account?.provider === "credentials") {
         await dbConnect();
-        const existingUser = await User.findOne({ email: user.email });
+        const existingUser = await User.findOne({ email: user.email }).lean();
 
         if (existingUser) {
-          // Update user object with membership info for JWT token
+          // Update user object with fresh membership info for JWT token
           user.membership = existingUser.membership;
           user.membershipStatus = existingUser.membershipStatus;
+          user.firstName = existingUser.firstName;
+          user.lastName = existingUser.lastName;
           return true;
         } else {
           // Hash the OAuth password before saving
@@ -112,7 +114,6 @@ export const authOptions = {
             receiveUpdates: false,
           });
           await newUser.save();
-          console.log(`Created new OAuth user ${user.email} with hashed password`);
           // Set membership info for new OAuth users
           user.membership = newUser.membership;
           user.membershipStatus = newUser.membershipStatus;
@@ -124,27 +125,37 @@ export const authOptions = {
       if (account) {
         token.provider = account.provider;
       }
-      // For credentials provider, the 'user' object from authorize is available here
-      if (user) {
+      
+      // Always fetch fresh user data from database to ensure latest membership info
+      if (token.email) {
+        try {
+          await dbConnect();
+          const dbUser = await User.findOne({ email: token.email }).lean();
+          if (dbUser) {
+            token.id = dbUser._id.toString();
+            token.email = dbUser.email;
+            token.name = `${dbUser.firstName} ${dbUser.lastName}`;
+            token.membership = dbUser.membership;
+            token.membershipStatus = dbUser.membershipStatus;
+          }
+        } catch (error) {
+          console.error('Error fetching fresh user data:', error);
+          // Fallback to user object if database fetch fails
+          if (user) {
+            token.id = user.id;
+            token.email = user.email;
+            token.name = user.name;
+            token.membership = user.membership;
+            token.membershipStatus = user.membershipStatus;
+          }
+        }
+      } else if (user) {
+        // For new logins, use user object from authorize
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
         token.membership = user.membership;
         token.membershipStatus = user.membershipStatus;
-      }
-      
-      // Refresh user data when session is updated
-      if (trigger === 'update' && token.email) {
-        try {
-          await dbConnect();
-          const updatedUser = await User.findOne({ email: token.email }).lean();
-          if (updatedUser) {
-            token.membership = updatedUser.membership;
-            token.membershipStatus = updatedUser.membershipStatus;
-          }
-        } catch (error) {
-          console.error('Error refreshing user data:', error);
-        }
       }
       
       return token;

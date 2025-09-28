@@ -59,7 +59,6 @@ export async function POST(req) {
           lastName: existingUser.lastName,
           membershipType: existingUser.membership
         });
-        console.log('Membership upgrade confirmation email sent to:', existingUser.email);
       } catch (emailError) {
         console.error('Failed to send upgrade confirmation email:', emailError);
       }

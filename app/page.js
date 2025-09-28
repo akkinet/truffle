@@ -295,6 +295,7 @@ export default function Home() {
             await update();
           }}
           user={user}
+          onSessionUpdate={update}
         />
       )}
     </div>
