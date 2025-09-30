@@ -36,49 +36,77 @@ export const authOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+        console.log('🔐 NextAuth authorize called with:', { email: credentials?.email, password: credentials?.password ? '[HIDDEN]' : 'undefined' });
+        
         if (!credentials?.email || !credentials?.password) {
+          console.log('❌ Missing credentials');
           return null;
         }
 
         try {
+          console.log('📡 Connecting to database...');
           await dbConnect();
+          console.log('✅ Database connected');
+          
+          console.log(`🔍 Looking for user: ${credentials.email}`);
           const user = await User.findOne({ email: credentials.email }).lean();
           if (!user) {
+            console.log('❌ User not found in database');
             return null;
           }
 
+          console.log('✅ User found:', {
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            membership: user.membership,
+            membershipStatus: user.membershipStatus
+          });
+
           // Check if this is an OAuth user trying to authenticate with credentials
           // OAuth users have hashed "oauth-user" password
+          console.log('🔐 Testing password comparison...');
           const isValid = await bcrypt.compare(credentials.password, user.password);
+          console.log(`  - bcrypt.compare("${credentials.password}", hash): ${isValid}`);
           
           // Special case: if user is trying to authenticate with "oauth-user" and it's an OAuth user
           if (!isValid && credentials.password === "oauth-user") {
+            console.log('🔄 Entering special OAuth user case...');
             // Check if this user was created via OAuth (has hashed "oauth-user" password)
             const isOAuthUser = await bcrypt.compare("oauth-user", user.password);
+            console.log(`  - isOAuthUser check: ${isOAuthUser}`);
+            
             if (isOAuthUser) {
-              return {
+              console.log('✅ OAuth user authentication successful');
+              const result = {
                 id: user._id.toString(),
                 email: user.email,
                 name: `${user.firstName} ${user.lastName}` || null,
                 membership: user.membership,
                 membershipStatus: user.membershipStatus,
               };
+              console.log('📤 Returning user data:', result);
+              return result;
             }
           }
           
           if (isValid) {
-            return {
+            console.log('✅ Normal authentication successful');
+            const result = {
               id: user._id.toString(),
               email: user.email,
               name: `${user.firstName} ${user.lastName}` || null,
               membership: user.membership,
               membershipStatus: user.membershipStatus,
             };
+            console.log('📤 Returning user data:', result);
+            return result;
           } else {
+            console.log('❌ Authentication failed - password mismatch');
             return null;
           }
         } catch (error) {
-          console.error("Error in authorize callback:", error);
+          console.error("❌ Error in authorize callback:", error);
           return null;
         }
       },

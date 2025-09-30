@@ -197,8 +197,10 @@ const Header = () => {
             src="/Logo.svg"
             height={40}
             width={150}
-            alt="Logo"
+            alt="Truffle Logo"
             className="w-[120px] md:w-[190px] h-auto"
+            unoptimized={true}
+            priority={true}
           />
         </div>
 
