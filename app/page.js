@@ -33,26 +33,65 @@ export default function Home() {
   const [showMembershipModal, setShowMembershipModal] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Check for payment confirmation URL parameters
-  useEffect(() => {
-    const paymentConfirmed = searchParams.get('payment_confirmed');
-    const paymentRecordId = searchParams.get('paymentRecordId');
-    
-    if (paymentConfirmed === '1' && paymentRecordId) {
-      // Open membership modal with payment confirmed
-      setShowMembershipModal(true);
-    }
-  }, [searchParams]);
+  // Check for payment confirmation URL parameters (removed - users now go through proper payment confirmation flow)
+  // useEffect(() => {
+  //   const paymentConfirmed = searchParams.get('payment_confirmed');
+  //   const paymentRecordId = searchParams.get('paymentRecordId');
+  //   
+  //   if (paymentConfirmed === '1' && paymentRecordId) {
+  //     // Open membership modal with payment confirmed
+  //     setShowMembershipModal(true);
+  //   }
+  // }, [searchParams]);
 
-  // Update membership from session
+  // Update membership from session and localStorage
   useEffect(() => {
     if (session?.user) {
       setUserMembership(session.user.membership || 'free');
       setUser(session.user);
     } else {
-      setUser(null);
-      setUserMembership('free');
+      // Check localStorage for user authentication (for newly registered users)
+      const userLoggedIn = localStorage.getItem('userLoggedIn');
+      const authToken = localStorage.getItem('authToken');
+      
+      if (userLoggedIn && authToken) {
+        try {
+          const userData = JSON.parse(userLoggedIn);
+          setUser(userData);
+          setUserMembership(userData.membership || 'free');
+        } catch (error) {
+          console.error('Error parsing user data from localStorage:', error);
+          localStorage.removeItem('userLoggedIn');
+          localStorage.removeItem('authToken');
+          setUser(null);
+          setUserMembership('free');
+        }
+      } else {
+        setUser(null);
+        setUserMembership('free');
+      }
     }
+  }, [session]);
+
+  // Listen for localStorage changes (when user completes registration)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const userLoggedIn = localStorage.getItem('userLoggedIn');
+      const authToken = localStorage.getItem('authToken');
+      
+      if (userLoggedIn && authToken && !session?.user) {
+        try {
+          const userData = JSON.parse(userLoggedIn);
+          setUser(userData);
+          setUserMembership(userData.membership || 'free');
+        } catch (error) {
+          console.error('Error parsing user data from localStorage:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [session]);
 
 

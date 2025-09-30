@@ -46,8 +46,8 @@ export default function CheckoutReturnPage() {
       if (data.status === 'succeeded') {
         console.log('✅ Payment succeeded! Redirecting...');
         setStatus('success');
-        // Redirect to membership modal with payment confirmed
-        router.push(`/?payment_confirmed=1&paymentRecordId=${paymentRecordId || data.paymentRecordId}`);
+        // Redirect to payment confirmation page to complete membership
+        router.push(`/payment/confirm?session_id=${sessionId}`);
         return;
       }
 
@@ -83,7 +83,7 @@ export default function CheckoutReturnPage() {
               
               if (updateResponse.ok) {
                 setStatus('success');
-                router.push(`/?payment_confirmed=1&paymentRecordId=${paymentRecordId || data.paymentRecordId}`);
+                router.push(`/payment/confirm?session_id=${sessionId}`);
                 return;
               }
             }
@@ -154,7 +154,7 @@ export default function CheckoutReturnPage() {
           
           if (updateResponse.ok) {
             setStatus('success');
-            router.push(`/?payment_confirmed=1&paymentRecordId=${paymentRecordId}`);
+            router.push(`/payment/confirm?session_id=${sessionId}`);
             return;
           }
         }
@@ -193,7 +193,7 @@ export default function CheckoutReturnPage() {
         <div className="text-center text-white">
           <div className="text-green-500 text-6xl mb-4">✓</div>
           <h2 className="text-2xl font-semibold mb-2">Payment Successful!</h2>
-          <p className="text-gray-300 mb-4">Redirecting you back to complete your membership...</p>
+          <p className="text-gray-300 mb-4">Redirecting you to complete your membership setup...</p>
         </div>
       </div>
     );

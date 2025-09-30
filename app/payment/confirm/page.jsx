@@ -78,14 +78,21 @@ export default function PaymentConfirmPage() {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.success) {
         // Clear session storage
         sessionStorage.removeItem('tempPassword');
         sessionStorage.removeItem('paymentRecordId');
         
-        toast.success('Membership created successfully!');
-        // Redirect to success page or login
-        router.push('/membership/success');
+        // Store user data and token for authentication
+        localStorage.setItem('userLoggedIn', JSON.stringify(data.user));
+        localStorage.setItem('authToken', data.token);
+        
+        toast.success('Membership created successfully! Welcome to Truffle!');
+        
+        // Redirect to home page as logged-in user
+        setTimeout(() => {
+          router.push('/');
+        }, 2000);
       } else {
         toast.error(data.error || 'Failed to complete membership');
       }

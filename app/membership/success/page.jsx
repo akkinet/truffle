@@ -11,13 +11,23 @@ export default function MembershipSuccessPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check if user is already logged in
+    const userLoggedIn = localStorage.getItem('userLoggedIn');
+    const authToken = localStorage.getItem('authToken');
+    
+    if (userLoggedIn && authToken) {
+      // User is already logged in, redirect to home page
+      router.push('/');
+      return;
+    }
+
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
       // In a real app, you'd fetch session details from your backend
       setSessionData({ sessionId });
     }
     setLoading(false);
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   if (loading) {
     return (

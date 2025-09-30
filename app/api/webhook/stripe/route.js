@@ -144,6 +144,10 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
           console.error('Failed to send upgrade confirmation email:', emailError);
         }
       }
+    } else {
+      // For new users, don't automatically create membership
+      // Let them complete the "Create Membership" step manually
+      console.log(`Payment succeeded for new user ${paymentRecord.email}. Waiting for manual membership creation.`);
     }
 
     console.log(`Payment intent succeeded for ${paymentIntentId}`);
