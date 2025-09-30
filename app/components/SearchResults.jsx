@@ -335,16 +335,35 @@ function ItemCard({ item, onItemClick }) {
   const getAllImages = (item) => {
     const images = [];
     if (item.images && Array.isArray(item.images)) {
-      images.push(...item.images);
+      // Filter out problematic URLs
+      const validImages = item.images.filter(url => {
+        // Skip grok.com URLs that are known to fail
+        if (url.includes('assets.grok.com')) {
+          console.log('Skipping problematic grok.com URL:', url);
+          return false;
+        }
+        return true;
+      });
+      images.push(...validImages);
     }
-    if (item.image) images.push(item.image);
+    if (item.image && !item.image.includes('assets.grok.com')) {
+      images.push(item.image);
+    }
     if (item.aircraftGallery?.exterior) {
-      Object.values(item.aircraftGallery.exterior).forEach(url => images.push(url));
+      Object.values(item.aircraftGallery.exterior).forEach(url => {
+        if (!url.includes('assets.grok.com')) {
+          images.push(url);
+        }
+      });
     }
     if (item.aircraftGallery?.interior) {
-      Object.values(item.aircraftGallery.interior).forEach(url => images.push(url));
+      Object.values(item.aircraftGallery.interior).forEach(url => {
+        if (!url.includes('assets.grok.com')) {
+          images.push(url);
+        }
+      });
     }
-    return images.length > 0 ? images : ['/placeholder-aircraft.svg'];
+    return images.length > 0 ? images : ['/Hero1.png'];
   };
 
   const images = getAllImages(item);
@@ -470,8 +489,10 @@ function ItemCard({ item, onItemClick }) {
           alt={item.name}
           fill
           className="object-cover"
+          unoptimized={images[currentImageIndex]?.includes('assets.grok.com')}
           onError={(e) => {
-            e.target.src = '/placeholder-aircraft.svg';
+            console.log('Image failed to load:', images[currentImageIndex]);
+            e.target.src = '/Hero1.png';
           }}
         />
         
