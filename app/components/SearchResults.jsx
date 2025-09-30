@@ -316,7 +316,7 @@ export default function SearchResults({ results, loading, onItemClick }) {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {filteredResults.map((item) => (
                 <ItemCard key={item._id || item.id} item={item} onItemClick={onItemClick} />
               ))}
@@ -437,6 +437,11 @@ function ItemCard({ item, onItemClick }) {
     if (item.category === 'charter_flights') {
       if (item.aircraft_type) details.push({ label: 'Aircraft Type', value: item.aircraft_type });
       if (item.flight_number) details.push({ label: 'Flight Number', value: item.flight_number });
+      if (item.registration_no) details.push({ label: 'Registration', value: item.registration_no });
+      if (item.max_speed_knots) details.push({ label: 'Max Speed', value: `${item.max_speed_knots} knots` });
+      if (item.range || item.range_km) details.push({ label: 'Range', value: `${(item.range || item.range_km).toLocaleString()} km` });
+      if (item.engine_type) details.push({ label: 'Engine', value: item.engine_type });
+      if (item.cabin_height) details.push({ label: 'Cabin Height', value: `${item.cabin_height} ft` });
     }
     
     return details;
@@ -481,9 +486,9 @@ function ItemCard({ item, onItemClick }) {
   const priceInfo = getPriceDisplay(item);
 
   return (
-    <div className="bg-[#110003]/[0.44] border border-white/25 backdrop-blur-[8.9px] rounded-lg overflow-hidden hover:border-white/40 transition-all duration-300 shadow-lg hover:shadow-xl">
+    <div className="bg-[#110003]/[0.44] border border-white/25 backdrop-blur-[8.9px] rounded-lg overflow-hidden hover:border-white/40 transition-all duration-300 shadow-lg hover:shadow-xl h-full">
       {/* Image Slider */}
-      <div className="relative h-64 w-full">
+      <div className="relative h-72 w-full">
         <Image
           src={images[currentImageIndex] || '/Hero1.png'}
           alt={item.name}
@@ -540,7 +545,7 @@ function ItemCard({ item, onItemClick }) {
       </div>
 
       {/* Content */}
-      <div className="p-6">
+      <div className="p-8">
         {/* Title and Description */}
         <div className="mb-4">
           <h3 className="font-maleh text-xl font-light text-white mb-2">{item.name}</h3>

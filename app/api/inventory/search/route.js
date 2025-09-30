@@ -112,6 +112,12 @@ export async function GET(request) {
     const start_date = searchParams.get('start_date');
     const end_date = searchParams.get('end_date');
     
+    // Additional filters for charter flights
+    const aircraft_type = searchParams.get('aircraft_type');
+    const engine_type = searchParams.get('engine_type');
+    const min_range = searchParams.get('min_range');
+    const max_speed_min = searchParams.get('max_speed_min');
+    
     // If no search parameters, return filter options
     if (!category) {
       const collections = ['private_jets', 'luxury_cars', 'super_cars', 'helicopters', 'yachts', 'charter_flights'];
@@ -320,6 +326,38 @@ export async function GET(request) {
             { capacity: { $gte: passengerCount } }
           ];
         }
+      }
+    }
+    
+    // Additional filters for charter flights
+    if (category === 'charter_flights') {
+      if (aircraft_type) {
+        query.aircraft_type = { $regex: aircraft_type, $options: 'i' };
+      }
+      if (engine_type) {
+        query.engine_type = { $regex: engine_type, $options: 'i' };
+      }
+      if (min_range) {
+        const rangeValue = parseInt(min_range);
+        if (query.$or) {
+          query.$and = [
+            { $or: query.$or },
+            { $or: [
+              { range: { $gte: rangeValue } },
+              { range_km: { $gte: rangeValue } }
+            ]}
+          ];
+          delete query.$or;
+        } else {
+          query.$or = [
+            { range: { $gte: rangeValue } },
+            { range_km: { $gte: rangeValue } }
+          ];
+        }
+      }
+      if (max_speed_min) {
+        const speedValue = parseInt(max_speed_min);
+        query.max_speed_knots = { $gte: speedValue };
       }
     }
     
