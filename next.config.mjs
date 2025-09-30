@@ -22,6 +22,11 @@ const nextConfig = {
         hostname: "assets.grok.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "plus.unsplash.com",
+        pathname: "/**",
+      }
     ],
     // Add additional configuration for better error handling
     dangerouslyAllowSVG: true,
