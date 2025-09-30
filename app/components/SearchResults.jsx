@@ -376,7 +376,7 @@ function ItemCard({ item, onItemClick }) {
   };
 
   const getCapacityDisplay = (item) => {
-    return item.seats || item.fleetDetails?.seatCapacity || 'N/A';
+    return item.capacity || item.seats || item.fleetDetails?.seatCapacity || 'N/A';
   };
 
   const getPriceDisplay = (item) => {
@@ -399,6 +399,10 @@ function ItemCard({ item, onItemClick }) {
       if (item.model) details.push({ label: 'Model', value: item.model });
       if (item.transmission) details.push({ label: 'Transmission', value: item.transmission });
       if (item.horsepower) details.push({ label: 'Horsepower', value: `${item.horsepower} HP` });
+      if (item.capacity) details.push({ label: 'Capacity', value: `${item.capacity} passengers` });
+      if (item.features && item.features.length > 0) {
+        details.push({ label: 'Key Features', value: item.features.slice(0, 2).join(', ') });
+      }
     }
     
     if (item.category === 'helicopters') {
@@ -556,12 +560,23 @@ function ItemCard({ item, onItemClick }) {
           </div>
         )}
 
-        {/* Amenities Preview */}
-        {item.additionalAmenities && Object.keys(item.additionalAmenities).length > 0 && (
+        {/* Features/Amenities Preview */}
+        {(item.features && item.features.length > 0) || (item.additionalAmenities && Object.keys(item.additionalAmenities).length > 0) ? (
           <div className="mb-4">
-            <h4 className="text-xs font-medium text-white/80 mb-2">Key Amenities</h4>
+            <h4 className="text-xs font-medium text-white/80 mb-2">Key Features</h4>
             <div className="flex flex-wrap gap-2">
-              {Object.keys(item.additionalAmenities).slice(0, 3).map((amenity, index) => {
+              {/* Show features for luxury cars */}
+              {item.features && item.features.slice(0, 3).map((feature, index) => {
+                const AmenityIcon = getAmenityIcon(feature);
+                return (
+                  <div key={index} className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded text-xs text-white/70">
+                    <AmenityIcon className="text-xs" />
+                    <span>{feature}</span>
+                  </div>
+                );
+              })}
+              {/* Show additional amenities for other categories */}
+              {!item.features && item.additionalAmenities && Object.keys(item.additionalAmenities).slice(0, 3).map((amenity, index) => {
                 const AmenityIcon = getAmenityIcon(amenity);
                 return (
                   <div key={index} className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded text-xs text-white/70">
@@ -570,14 +585,15 @@ function ItemCard({ item, onItemClick }) {
                   </div>
                 );
               })}
-              {Object.keys(item.additionalAmenities).length > 3 && (
+              {/* Show more count */}
+              {((item.features && item.features.length > 3) || (!item.features && item.additionalAmenities && Object.keys(item.additionalAmenities).length > 3)) && (
                 <div className="bg-white/10 px-2 py-1 rounded text-xs text-white/70">
-                  +{Object.keys(item.additionalAmenities).length - 3} more
+                  +{(item.features ? item.features.length : Object.keys(item.additionalAmenities).length) - 3} more
                 </div>
               )}
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Price and Action */}
         <div className="flex justify-between items-center pt-4 border-t border-white/10">
