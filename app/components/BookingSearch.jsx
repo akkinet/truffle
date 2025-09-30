@@ -21,6 +21,9 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
   const [availableLocations, setAvailableLocations] = useState([]);
   const [placeDetails, setPlaceDetails] = useState({});
 
+  // Debug logging
+  console.log('BookingSearch props:', { userMembership, isLoggedIn });
+
   // Load filter options on component mount
   useEffect(() => {
     loadFilterOptions();
@@ -47,7 +50,23 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
 
   const loadFilterOptions = async () => {
     try {
-      const response = await fetch('/api/inventory/search');
+      // Prepare authentication headers
+      const headers = {};
+      const authToken = localStorage.getItem('authToken');
+      const userLoggedIn = localStorage.getItem('userLoggedIn');
+      
+      if (authToken && userLoggedIn) {
+        try {
+          const userData = JSON.parse(userLoggedIn);
+          headers['Authorization'] = `Bearer ${authToken}`;
+          headers['X-User-Email'] = userData.email;
+          headers['X-User-Membership'] = userData.membership || 'free';
+        } catch (error) {
+          console.error('Error parsing user data for headers:', error);
+        }
+      }
+
+      const response = await fetch('/api/inventory/search', { headers });
       const data = await response.json();
       
       if (data.success) {
@@ -107,8 +126,33 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
         }
       });
 
-      // Make GET request with URL parameters
-      const response = await fetch(`/api/inventory/search?${params.toString()}`);
+      // Prepare authentication headers
+      const headers = {};
+      const authToken = localStorage.getItem('authToken');
+      const userLoggedIn = localStorage.getItem('userLoggedIn');
+      
+      if (authToken && userLoggedIn) {
+        try {
+          const userData = JSON.parse(userLoggedIn);
+          headers['Authorization'] = `Bearer ${authToken}`;
+          headers['X-User-Email'] = userData.email;
+          headers['X-User-Membership'] = userData.membership || 'free';
+          console.log('Sending authentication headers:', {
+            email: userData.email,
+            membership: userData.membership,
+            hasToken: !!authToken
+          });
+        } catch (error) {
+          console.error('Error parsing user data for headers:', error);
+        }
+      } else {
+        console.log('No authentication data found in localStorage');
+      }
+
+      // Make GET request with URL parameters and authentication headers
+      const response = await fetch(`/api/inventory/search?${params.toString()}`, {
+        headers
+      });
 
       const data = await response.json();
 

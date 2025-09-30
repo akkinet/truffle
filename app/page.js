@@ -47,6 +47,7 @@ export default function Home() {
   // Update membership from session and localStorage
   useEffect(() => {
     if (session?.user) {
+      console.log('Using session user:', session.user);
       setUserMembership(session.user.membership || 'free');
       setUser(session.user);
     } else {
@@ -54,9 +55,14 @@ export default function Home() {
       const userLoggedIn = localStorage.getItem('userLoggedIn');
       const authToken = localStorage.getItem('authToken');
       
+      console.log('Checking localStorage:', { userLoggedIn: !!userLoggedIn, authToken: !!authToken });
+      
       if (userLoggedIn && authToken) {
         try {
           const userData = JSON.parse(userLoggedIn);
+          console.log('Parsed user data from localStorage:', userData);
+          console.log('Membership field:', userData.membership);
+          console.log('All user data fields:', Object.keys(userData));
           setUser(userData);
           setUserMembership(userData.membership || 'free');
         } catch (error) {
@@ -67,6 +73,7 @@ export default function Home() {
           setUserMembership('free');
         }
       } else {
+        console.log('No localStorage authentication found');
         setUser(null);
         setUserMembership('free');
       }
@@ -82,6 +89,7 @@ export default function Home() {
       if (userLoggedIn && authToken && !session?.user) {
         try {
           const userData = JSON.parse(userLoggedIn);
+          console.log('Storage change detected, updating user:', userData);
           setUser(userData);
           setUserMembership(userData.membership || 'free');
         } catch (error) {
@@ -90,10 +98,51 @@ export default function Home() {
       }
     };
 
+    // Also check on page focus (in case localStorage was updated in another tab)
+    const handleFocus = () => {
+      if (!session?.user) {
+        const userLoggedIn = localStorage.getItem('userLoggedIn');
+        const authToken = localStorage.getItem('authToken');
+        
+        if (userLoggedIn && authToken) {
+          try {
+            const userData = JSON.parse(userLoggedIn);
+            console.log('Page focus detected, updating user:', userData);
+            setUser(userData);
+            setUserMembership(userData.membership || 'free');
+          } catch (error) {
+            console.error('Error parsing user data from localStorage on focus:', error);
+          }
+        }
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [session]);
 
+  // Additional check to ensure user data is loaded (fallback for timing issues)
+  useEffect(() => {
+    if (!user && !session?.user) {
+      const userLoggedIn = localStorage.getItem('userLoggedIn');
+      const authToken = localStorage.getItem('authToken');
+      
+      if (userLoggedIn && authToken) {
+        try {
+          const userData = JSON.parse(userLoggedIn);
+          console.log('Fallback check - loading user from localStorage:', userData);
+          setUser(userData);
+          setUserMembership(userData.membership || 'free');
+        } catch (error) {
+          console.error('Fallback check error:', error);
+        }
+      }
+    }
+  }, [user, session]);
 
   const handleSearchResults = (results) => {
     setSearchResults(results);
@@ -140,7 +189,41 @@ export default function Home() {
         <h2 className="text-left font-maleh font-normal text-[24px] md:text-[32px] ml-[5%] md:ml-[15%] mt-[8%] md:mt-[10%]">
           Book An Experience
         </h2>
-        <BookingSearch onSearchResults={handleSearchResults} onLoading={handleLoading} userMembership={userMembership} isLoggedIn={!!session} onShowMembershipModal={setShowMembershipModal} />
+        
+        {/* Debug info - remove this after fixing */}
+        {/* {user && (
+          <div className="ml-[5%] md:ml-[15%] mb-4 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+            <h3 className="text-yellow-300 font-semibold mb-2">Debug Info:</h3>
+            <p className="text-yellow-200 text-sm">User: {user.firstName} {user.lastName}</p>
+            <p className="text-yellow-200 text-sm">Email: {user.email}</p>
+            <p className="text-yellow-200 text-sm">Membership: {userMembership}</p>
+            <p className="text-yellow-200 text-sm">Is Logged In: {!!session || !!user ? 'Yes' : 'No'}</p>
+            <p className="text-yellow-200 text-sm">Session User: {session?.user ? 'Yes' : 'No'}</p>
+            <p className="text-yellow-200 text-sm">LocalStorage User: {user ? 'Yes' : 'No'}</p>
+            <button 
+              onClick={() => {
+                const userLoggedIn = localStorage.getItem('userLoggedIn');
+                const authToken = localStorage.getItem('authToken');
+                console.log('Manual refresh - localStorage:', { userLoggedIn: !!userLoggedIn, authToken: !!authToken });
+                if (userLoggedIn && authToken) {
+                  try {
+                    const userData = JSON.parse(userLoggedIn);
+                    console.log('Manual refresh - user data:', userData);
+                    setUser(userData);
+                    setUserMembership(userData.membership || 'free');
+                  } catch (error) {
+                    console.error('Manual refresh error:', error);
+                  }
+                }
+              }}
+              className="mt-2 px-3 py-1 bg-yellow-600 text-black text-xs rounded hover:bg-yellow-500"
+            >
+              Refresh User Data
+            </button>
+          </div>
+        )} */}
+        
+        <BookingSearch onSearchResults={handleSearchResults} onLoading={handleLoading} userMembership={userMembership} isLoggedIn={!!session || !!user} onShowMembershipModal={setShowMembershipModal} />
         
         {/* Search Results */}
         {searchResults.length > 0 && (

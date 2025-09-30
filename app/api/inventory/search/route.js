@@ -21,8 +21,32 @@ export async function GET(request) {
     
     // Get user session to check membership
     const session = await getServerSession(authOptions);
-    const userMembership = session?.user?.membership || 'free';
-    const userEmail = session?.user?.email;
+    
+    // Check for localStorage authentication via headers
+    const authHeader = request.headers.get('authorization');
+    const userEmailHeader = request.headers.get('x-user-email');
+    const userMembershipHeader = request.headers.get('x-user-membership');
+    
+    let userMembership = 'free';
+    let userEmail = null;
+    
+    if (session?.user) {
+      // NextAuth session authentication
+      userMembership = session.user.membership || 'free';
+      userEmail = session.user.email;
+    } else if (authHeader && userEmailHeader && userMembershipHeader) {
+      // localStorage authentication via headers
+      userMembership = userMembershipHeader;
+      userEmail = userEmailHeader;
+    }
+    
+    console.log('Search API authentication check:', {
+      hasSession: !!session?.user,
+      hasAuthHeader: !!authHeader,
+      userEmail,
+      userMembership,
+      requestUrl: request.url
+    });
     
     // If user has free membership and is trying to search, return restriction message
     if (userMembership === 'free' && (searchParams.get('category') || searchParams.get('from') || searchParams.get('to'))) {

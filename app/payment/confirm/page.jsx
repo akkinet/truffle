@@ -84,8 +84,13 @@ export default function PaymentConfirmPage() {
         sessionStorage.removeItem('paymentRecordId');
         
         // Store user data and token for authentication
+        console.log('Storing user data in localStorage:', data.user);
         localStorage.setItem('userLoggedIn', JSON.stringify(data.user));
         localStorage.setItem('authToken', data.token);
+        
+        // Verify storage
+        const storedUser = localStorage.getItem('userLoggedIn');
+        console.log('Verifying localStorage storage:', storedUser);
         
         toast.success('Membership created successfully! Welcome to Truffle!');
         
