@@ -141,6 +141,19 @@ const Header = () => {
     return 0;
   };
 
+  // Check if user has paid membership
+  const hasPaidMembership = () => {
+    const membership = getUserMembership();
+    return membership && membership !== 'free';
+  };
+
+  console.log('Header membership check:', {
+    sessionMembership: session?.user?.membership,
+    localStorageMembership: isLoggedIn?.membership,
+    finalMembership: getUserMembership(),
+    hasPaidMembership: hasPaidMembership()
+  });
+
   return (
     <>
       <div className="px-4 md:px-[10%] flex justify-between items-center pt-[15px] md:pt-[25px] pb-[15px] md:pb-[20px] font-garet bg-gradient-to-b from-[#110400] to-[#0C0300] relative">
@@ -191,12 +204,14 @@ const Header = () => {
 
         {/* Desktop Right Menu */}
         <div className="hidden md:flex w-[20%] text-[14px] gap-4 text-white justify-end items-center">
-          <a
-            href="/membership"
-            className="cursor-pointer hover:underline whitespace-nowrap"
-          >
-            Buy Membership
-          </a>
+          {!hasPaidMembership() && (
+            <a
+              href="/membership"
+              className="cursor-pointer hover:underline whitespace-nowrap"
+            >
+              Buy Membership
+            </a>
+          )}
           
           {session || isLoggedIn ? (
             <div className="relative" ref={userDropdownRef}>
@@ -394,13 +409,15 @@ const Header = () => {
               
               <hr className="border-gray-600 my-2" />
               
-              <a
-                href="/membership"
-                className="cursor-pointer hover:underline transition-colors"
-                onClick={toggleMobileMenu}
-              >
-                Buy Membership
-              </a>
+              {!hasPaidMembership() && (
+                <a
+                  href="/membership"
+                  className="cursor-pointer hover:underline transition-colors"
+                  onClick={toggleMobileMenu}
+                >
+                  Buy Membership
+                </a>
+              )}
               
               {!(session || isLoggedIn) && (
                 <p

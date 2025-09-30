@@ -8,8 +8,40 @@ export default function MembershipButton({ label, user = null }) {
   const [open, setOpen] = useState(false);
   const { data: session, update } = useSession();
 
+  // Check membership from both session and localStorage
+  const getMembershipStatus = () => {
+    // Check NextAuth session first
+    if (session?.user?.membership) {
+      return session.user.membership;
+    }
+    
+    // Check localStorage for non-OAuth users
+    if (typeof window !== 'undefined') {
+      const userLoggedIn = localStorage.getItem('userLoggedIn');
+      if (userLoggedIn) {
+        try {
+          const userData = JSON.parse(userLoggedIn);
+          return userData.membership || 'free';
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+        }
+      }
+    }
+    
+    return 'free';
+  };
+
+  const userMembership = getMembershipStatus();
+  
   // Don't show the button if user has a paid membership
-  const hasPaidMembership = session?.user?.membership && session.user.membership !== 'free';
+  const hasPaidMembership = userMembership && userMembership !== 'free';
+  
+  console.log('MembershipButton check:', {
+    sessionMembership: session?.user?.membership,
+    localStorageMembership: userMembership,
+    hasPaidMembership,
+    shouldShowButton: !hasPaidMembership
+  });
   
   if (hasPaidMembership) {
     return null; // Hide the button for paid members

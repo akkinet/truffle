@@ -60,9 +60,6 @@ export default function Home() {
       if (userLoggedIn && authToken) {
         try {
           const userData = JSON.parse(userLoggedIn);
-          console.log('Parsed user data from localStorage:', userData);
-          console.log('Membership field:', userData.membership);
-          console.log('All user data fields:', Object.keys(userData));
           setUser(userData);
           setUserMembership(userData.membership || 'free');
         } catch (error) {
@@ -73,7 +70,6 @@ export default function Home() {
           setUserMembership('free');
         }
       } else {
-        console.log('No localStorage authentication found');
         setUser(null);
         setUserMembership('free');
       }
