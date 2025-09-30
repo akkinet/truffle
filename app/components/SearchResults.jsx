@@ -316,7 +316,7 @@ export default function SearchResults({ results, loading, onItemClick }) {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {filteredResults.map((item) => (
                 <ItemCard key={item._id || item.id} item={item} onItemClick={onItemClick} />
               ))}
@@ -425,8 +425,12 @@ function ItemCard({ item, onItemClick }) {
     }
     
     if (item.category === 'helicopters') {
-      if (item.range_km) details.push({ label: 'Range', value: `${item.range_km} km` });
+      if (item.range_km || item.range) details.push({ label: 'Range', value: `${(item.range_km || item.range).toLocaleString()} km` });
       if (item.model) details.push({ label: 'Model', value: item.model });
+      if (item.registration_no) details.push({ label: 'Registration', value: item.registration_no });
+      if (item.max_speed_knots) details.push({ label: 'Max Speed', value: `${item.max_speed_knots} knots` });
+      if (item.engine_type) details.push({ label: 'Engine', value: item.engine_type });
+      if (item.cabin_height) details.push({ label: 'Cabin Height', value: `${item.cabin_height} ft` });
     }
     
     if (item.category === 'yachts') {
@@ -488,7 +492,7 @@ function ItemCard({ item, onItemClick }) {
   return (
     <div className="bg-[#110003]/[0.44] border border-white/25 backdrop-blur-[8.9px] rounded-lg overflow-hidden hover:border-white/40 transition-all duration-300 shadow-lg hover:shadow-xl h-full">
       {/* Image Slider */}
-      <div className="relative h-72 w-full">
+      <div className="relative h-80 w-full">
         <Image
           src={images[currentImageIndex] || '/Hero1.png'}
           alt={item.name}
@@ -547,13 +551,13 @@ function ItemCard({ item, onItemClick }) {
       {/* Content */}
       <div className="p-8">
         {/* Title and Description */}
-        <div className="mb-4">
-          <h3 className="font-maleh text-xl font-light text-white mb-2">{item.name}</h3>
-          <p className="text-white/70 text-sm leading-relaxed line-clamp-2">{item.description}</p>
+        <div className="mb-6">
+          <h3 className="font-maleh text-xl font-light text-white mb-3">{item.name}</h3>
+          <p className="text-white/70 text-sm leading-relaxed line-clamp-3">{item.description}</p>
         </div>
         
         {/* Key Details */}
-        <div className="space-y-3 mb-4">
+        <div className="space-y-4 mb-6">
           <div className="flex items-center gap-2 text-white/80 text-sm">
             <FaMapMarkerAlt className="text-xs text-white/60" />
             <span className="truncate">{getLocationDisplay(item)}</span>
@@ -564,7 +568,7 @@ function ItemCard({ item, onItemClick }) {
           </div>
           
           {/* Category-specific details */}
-          {categoryDetails.slice(0, 2).map((detail, index) => (
+          {categoryDetails.slice(0, 3).map((detail, index) => (
             <div key={index} className="flex items-center gap-2 text-white/80 text-sm">
               <span className="text-xs text-white/60">📋</span>
               <span>{detail.label}: {detail.value}</span>
@@ -574,15 +578,15 @@ function ItemCard({ item, onItemClick }) {
 
         {/* Tags */}
         {item.tags && item.tags.length > 0 && (
-          <div className="mb-4">
-            <div className="flex flex-wrap gap-1">
+          <div className="mb-6">
+            <div className="flex flex-wrap gap-2">
               {item.tags.slice(0, 4).map((tag, index) => (
-                <span key={index} className="bg-white/10 px-2 py-1 rounded text-xs text-white/70">
+                <span key={index} className="bg-white/10 px-3 py-1.5 rounded text-xs text-white/70">
                   {tag}
                 </span>
               ))}
               {item.tags.length > 4 && (
-                <span className="bg-white/10 px-2 py-1 rounded text-xs text-white/70">
+                <span className="bg-white/10 px-3 py-1.5 rounded text-xs text-white/70">
                   +{item.tags.length - 4} more
                 </span>
               )}
@@ -592,8 +596,8 @@ function ItemCard({ item, onItemClick }) {
 
         {/* Features/Amenities Preview */}
         {(item.features && item.features.length > 0) || (item.additionalAmenities && Object.keys(item.additionalAmenities).length > 0) ? (
-          <div className="mb-4">
-            <h4 className="text-xs font-medium text-white/80 mb-2">Key Features</h4>
+          <div className="mb-6">
+            <h4 className="text-sm font-medium text-white/80 mb-3">Key Features</h4>
             <div className="flex flex-wrap gap-2">
               {/* Show features for luxury cars */}
               {item.features && item.features.slice(0, 3).map((feature, index) => {
@@ -626,7 +630,7 @@ function ItemCard({ item, onItemClick }) {
         ) : null}
 
         {/* Price and Action */}
-        <div className="flex justify-between items-center pt-4 border-t border-white/10">
+        <div className="flex justify-between items-center pt-6 border-t border-white/10">
           <div>
             <p className="text-white font-semibold text-2xl">{formatPrice(priceInfo.price)}</p>
             <p className="text-white/60 text-sm">{priceInfo.unit}</p>
