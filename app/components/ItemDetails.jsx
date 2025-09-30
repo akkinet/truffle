@@ -123,7 +123,7 @@ export default function ItemDetails({ item, onClose }) {
               </div>
               <div>
                 <div className="text-sm font-medium text-white">Capacity</div>
-                <div className="text-xs text-white/60">{item.capacity || item.fleetDetails?.seatCapacity || 'N/A'} passengers</div>
+                <div className="text-xs text-white/60">{item.capacity || item.seats || item.fleetDetails?.seatCapacity || 'N/A'} passengers</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -132,7 +132,11 @@ export default function ItemDetails({ item, onClose }) {
               </div>
               <div>
                 <div className="text-sm font-medium text-white">Max Speed</div>
-                <div className="text-xs text-white/60">{item.fleetDetails?.maxSpeed || 'N/A'} {item.category === 'LuxuryYacht' ? 'knots' : item.category === 'LuxuryCar' || item.category === 'Supercar' ? 'km/h' : 'knots'}</div>
+                <div className="text-xs text-white/60">
+                  {item.max_speed_knots || item.fleetDetails?.maxSpeed || 'N/A'} 
+                  {item.category === 'yachts' ? ' knots' : 
+                   item.category === 'luxury_cars' || item.category === 'super_cars' ? ' km/h' : ' knots'}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -141,9 +145,53 @@ export default function ItemDetails({ item, onClose }) {
               </div>
               <div>
                 <div className="text-sm font-medium text-white">Range</div>
-                <div className="text-xs text-white/60">{item.fleetDetails?.flyingRange || 'N/A'}</div>
+                <div className="text-xs text-white/60">
+                  {item.range || item.range_km || item.fleetDetails?.flyingRange || 'N/A'}
+                  {item.category === 'charter_flights' || item.category === 'private_jets' || item.category === 'helicopters' ? ' km' : ''}
+                </div>
               </div>
             </div>
+            {/* Helicopter specific fields */}
+            {item.category === 'helicopters' && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">🚁</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Model</div>
+                    <div className="text-xs text-white/60">{item.model || 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">🏷️</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Registration</div>
+                    <div className="text-xs text-white/60">{item.registration_no || 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">🔧</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Engine Type</div>
+                    <div className="text-xs text-white/60">{item.engine_type || 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">📐</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Cabin Height</div>
+                    <div className="text-xs text-white/60">{item.cabin_height || 'N/A'} ft</div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
         
@@ -164,11 +212,11 @@ export default function ItemDetails({ item, onClose }) {
             </div>
             <div className="flex justify-between items-center">
               <span className="text-white/60 text-sm">Last Maintenance</span>
-              <span className="text-white text-sm">{formatDate(item.fleetDetails?.lastMaintenance)}</span>
+              <span className="text-white text-sm">{formatDate(item.last_maintenance || item.fleetDetails?.lastMaintenance)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-white/60 text-sm">Insurance Expiry</span>
-              <span className="text-white text-sm">{formatDate(item.fleetDetails?.insuranceExpiry)}</span>
+              <span className="text-white text-sm">{formatDate(item.insurance_expiry || item.fleetDetails?.insuranceExpiry)}</span>
             </div>
           </div>
         </div>
@@ -341,6 +389,55 @@ export default function ItemDetails({ item, onClose }) {
                   </span>
                 </div>
               </>
+            ) : item.category === 'helicopters' ? (
+              <>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Model</span>
+                  <span className="font-medium text-white text-sm">{item.model || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Registration</span>
+                  <span className="font-medium text-white text-sm">{item.registration_no || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Capacity</span>
+                  <span className="font-medium text-white text-sm">{item.capacity || item.seats || 'N/A'} passengers</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Max Speed</span>
+                  <span className="font-medium text-white text-sm">{item.max_speed_knots || 'N/A'} knots</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Range</span>
+                  <span className="font-medium text-white text-sm">{item.range || item.range_km || 'N/A'} km</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Engine Type</span>
+                  <span className="font-medium text-white text-sm">{item.engine_type || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Cabin Height</span>
+                  <span className="font-medium text-white text-sm">{item.cabin_height || 'N/A'} ft</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Availability</span>
+                  <span className={`font-medium text-sm ${item.available ? 'text-green-300' : 'text-red-300'}`}>
+                    {item.available ? 'Available' : 'Unavailable'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Price per Hour</span>
+                  <span className="font-medium text-white text-sm">{item.price_per_hour ? `$${item.price_per_hour}` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Rating</span>
+                  <span className="font-medium text-white text-sm">{item.rating ? `${item.rating}/5 ⭐` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Currency</span>
+                  <span className="font-medium text-white text-sm">{item.currency || 'USD'}</span>
+                </div>
+              </>
             ) : (
               <>
                 <div className="flex justify-between py-2 border-b border-white/10">
@@ -393,16 +490,16 @@ export default function ItemDetails({ item, onClose }) {
                 <span className="font-medium text-white text-sm">{item.tags.join(', ')}</span>
               </div>
             )}
-            {item.fleetDetails?.lastMaintenance && (
+            {(item.fleetDetails?.lastMaintenance || item.last_maintenance) && (
               <div className="flex justify-between py-2 border-b border-white/10">
                 <span className="text-white/60 text-sm">Last Maintenance</span>
-                <span className="font-medium text-white text-sm">{formatDate(item.fleetDetails?.lastMaintenance)}</span>
+                <span className="font-medium text-white text-sm">{formatDate(item.fleetDetails?.lastMaintenance || item.last_maintenance)}</span>
               </div>
             )}
-            {item.fleetDetails?.insuranceExpiry && (
+            {(item.fleetDetails?.insuranceExpiry || item.insurance_expiry) && (
               <div className="flex justify-between py-2 border-b border-white/10">
                 <span className="text-white/60 text-sm">Insurance Expiry</span>
-                <span className="font-medium text-white text-sm">{formatDate(item.fleetDetails?.insuranceExpiry)}</span>
+                <span className="font-medium text-white text-sm">{formatDate(item.fleetDetails?.insuranceExpiry || item.insurance_expiry)}</span>
               </div>
             )}
           </div>
