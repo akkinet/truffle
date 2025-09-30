@@ -34,16 +34,35 @@ export default function ItemDetails({ item, onClose }) {
   const getAllImages = () => {
     const images = [];
     if (item.images && Array.isArray(item.images)) {
-      images.push(...item.images);
+      // Filter out problematic URLs
+      const validImages = item.images.filter(url => {
+        // Skip grok.com URLs that are known to fail
+        if (url.includes('assets.grok.com')) {
+          console.log('Skipping problematic grok.com URL in ItemDetails:', url);
+          return false;
+        }
+        return true;
+      });
+      images.push(...validImages);
     }
-    if (item.image) images.push(item.image);
+    if (item.image && !item.image.includes('assets.grok.com')) {
+      images.push(item.image);
+    }
     if (item.aircraftGallery?.exterior) {
-      Object.values(item.aircraftGallery.exterior).forEach(url => images.push(url));
+      Object.values(item.aircraftGallery.exterior).forEach(url => {
+        if (!url.includes('assets.grok.com')) {
+          images.push(url);
+        }
+      });
     }
     if (item.aircraftGallery?.interior) {
-      Object.values(item.aircraftGallery.interior).forEach(url => images.push(url));
+      Object.values(item.aircraftGallery.interior).forEach(url => {
+        if (!url.includes('assets.grok.com')) {
+          images.push(url);
+        }
+      });
     }
-    return images.length > 0 ? images : [item.image || '/placeholder-aircraft.svg'];
+    return images.length > 0 ? images : ['/Hero1.png'];
   };
 
   const images = getAllImages();
@@ -169,10 +188,15 @@ export default function ItemDetails({ item, onClose }) {
       <div className="relative">
         <div className="relative h-80 w-full rounded-lg overflow-hidden">
           <Image
-            src={images[currentImageIndex] || '/placeholder-aircraft.svg'}
+            src={images[currentImageIndex] || '/Hero1.png'}
             alt={`${item.name} - Image ${currentImageIndex + 1}`}
             fill
             className="object-cover"
+            unoptimized={images[currentImageIndex]?.includes('assets.grok.com')}
+            onError={(e) => {
+              console.log('Image failed to load in ItemDetails:', images[currentImageIndex]);
+              e.target.src = '/Hero1.png';
+            }}
           />
           {images.length > 1 && (
             <>
@@ -214,6 +238,11 @@ export default function ItemDetails({ item, onClose }) {
                 alt={`Thumbnail ${index + 1}`}
                 fill
                 className="object-cover"
+                unoptimized={image?.includes('assets.grok.com')}
+                onError={(e) => {
+                  console.log('Thumbnail image failed to load:', image);
+                  e.target.src = '/Hero1.png';
+                }}
               />
             </div>
           ))}

@@ -485,13 +485,17 @@ function ItemCard({ item, onItemClick }) {
       {/* Image Slider */}
       <div className="relative h-64 w-full">
         <Image
-          src={images[currentImageIndex]}
+          src={images[currentImageIndex] || '/Hero1.png'}
           alt={item.name}
           fill
           className="object-cover"
           unoptimized={images[currentImageIndex]?.includes('assets.grok.com')}
           onError={(e) => {
             console.log('Image failed to load:', images[currentImageIndex]);
+            e.target.src = '/Hero1.png';
+          }}
+          onLoadError={(e) => {
+            console.log('Image load error:', images[currentImageIndex]);
             e.target.src = '/Hero1.png';
           }}
         />
