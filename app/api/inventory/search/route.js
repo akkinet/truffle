@@ -217,9 +217,11 @@ export async function GET(request) {
         query.$or = [];
         if (from) {
           query.$or.push({ 'from.address': { $regex: from, $options: 'i' } });
+          query.$or.push({ 'location.address': { $regex: from, $options: 'i' } });
         }
         if (to) {
           query.$or.push({ 'to.address': { $regex: to, $options: 'i' } });
+          query.$or.push({ 'location.address': { $regex: to, $options: 'i' } });
         }
       }
     }
@@ -299,6 +301,25 @@ export async function GET(request) {
             { capacity: { $gte: passengerCount } }
           ];
         }
+      } else if (category === 'charter_flights') {
+        // Add capacity check to existing query
+        if (query.$or) {
+          // If we already have $or for location, we need to combine them
+          query.$and = [
+            { $or: query.$or },
+            { $or: [
+              { seats: { $gte: passengerCount } },
+              { capacity: { $gte: passengerCount } }
+            ]}
+          ];
+          delete query.$or;
+        } else {
+          // No existing $or, just add capacity check
+          query.$or = [
+            { seats: { $gte: passengerCount } },
+            { capacity: { $gte: passengerCount } }
+          ];
+        }
       }
     }
     
@@ -318,6 +339,17 @@ export async function GET(request) {
     
     const results = await collection.find(query).sort(sortObj).toArray();
     const count = results.length;
+    
+    if (category === 'charter_flights') {
+      console.log('Charter flight search debug:', {
+        from: searchParams.get('from'),
+        to: searchParams.get('to'),
+        passengers: searchParams.get('passengers'),
+        query,
+        count,
+        results: results.map(r => ({ name: r.name, location: r.location?.address, capacity: r.capacity, seats: r.seats }))
+      });
+    }
     
     if (category === 'yachts') {
       console.log('Yacht search debug:', {
