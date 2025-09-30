@@ -232,7 +232,10 @@ export async function GET(request) {
     
     if (category === 'yachts') {
       if (departure_marina) {
-        query['base_marina.address'] = { $regex: departure_marina, $options: 'i' };
+        query.$or = [
+          { 'base_marina.address': { $regex: departure_marina, $options: 'i' } },
+          { 'location.address': { $regex: departure_marina, $options: 'i' } }
+        ];
       }
     }
     
@@ -277,6 +280,25 @@ export async function GET(request) {
             { capacity: { $gte: passengerCount } }
           ];
         }
+      } else if (category === 'yachts') {
+        // Add capacity check to existing query
+        if (query.$or) {
+          // If we already have $or for location, we need to combine them
+          query.$and = [
+            { $or: query.$or },
+            { $or: [
+              { seats: { $gte: passengerCount } },
+              { capacity: { $gte: passengerCount } }
+            ]}
+          ];
+          delete query.$or;
+        } else {
+          // No existing $or, just add capacity check
+          query.$or = [
+            { seats: { $gte: passengerCount } },
+            { capacity: { $gte: passengerCount } }
+          ];
+        }
       }
     }
     
@@ -289,13 +311,22 @@ export async function GET(request) {
     } else if (category === 'luxury_cars' || category === 'super_cars') {
       sortObj.price_per_day = sortOrder === 'asc' ? 1 : -1;
     } else if (category === 'yachts') {
-      sortObj.price_per_day = sortOrder === 'asc' ? 1 : -1;
+      sortObj.price = sortOrder === 'asc' ? 1 : -1;
     } else if (category === 'charter_flights') {
       sortObj.price = sortOrder === 'asc' ? 1 : -1;
     }
     
     const results = await collection.find(query).sort(sortObj).toArray();
     const count = results.length;
+    
+    if (category === 'yachts') {
+      console.log('Yacht search debug:', {
+        departure_marina: searchParams.get('departure_marina'),
+        query,
+        count,
+        results: results.map(r => ({ name: r.name, location: r.location?.address, base_marina: r.base_marina?.address }))
+      });
+    }
     
     console.log('Search query details:', {
       category,
