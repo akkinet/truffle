@@ -17,6 +17,11 @@ const nextConfig = {
         hostname: "airambulance.s3.ap-south-1.amazonaws.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "assets.grok.com",
+        pathname: "/**",
+      },
     ],
   },
 };
