@@ -154,6 +154,13 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
         headers
       });
 
+      console.log('Search request details:', {
+        url: `/api/inventory/search?${params.toString()}`,
+        headers,
+        hasAuthToken: !!authToken,
+        hasUserData: !!userLoggedIn
+      });
+
       const data = await response.json();
 
       if (data.success) {
