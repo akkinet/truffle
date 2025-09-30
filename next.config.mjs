@@ -26,6 +26,8 @@ const nextConfig = {
     // Add additional configuration for better error handling
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Allow local SVG files
+    domains: ['localhost'],
   },
 };
 

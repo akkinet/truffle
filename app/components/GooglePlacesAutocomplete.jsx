@@ -32,6 +32,28 @@ const GooglePlacesAutocomplete = ({
     }
   }, []);
 
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        suggestionsRef.current && 
+        !suggestionsRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    if (showSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions]);
+
   const handleInputChange = (e) => {
     const inputValue = e.target.value;
     onChange(inputValue);
@@ -120,7 +142,7 @@ const GooglePlacesAutocomplete = ({
     // Delay hiding suggestions to allow click events
     setTimeout(() => {
       setShowSuggestions(false);
-    }, 200);
+    }, 300);
   };
 
   const handleFocus = () => {
@@ -155,13 +177,21 @@ const GooglePlacesAutocomplete = ({
       {showSuggestions && suggestions.length > 0 && (
         <div 
           ref={suggestionsRef}
-          className="dropdown-suggestions absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-[#110400] border border-white/25 rounded-lg shadow-lg z-50"
         >
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion.place_id}
-              onClick={() => handleSuggestionClick(suggestion)}
-              className="px-4 py-3 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-b-0 transition-colors"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSuggestionClick(suggestion);
+              }}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSuggestionClick(suggestion);
+              }}
+              className="px-4 py-3 hover:bg-white/10 cursor-pointer border-b border-white/10 last:border-b-0 transition-colors text-left"
             >
               <div className="flex items-start gap-3">
                 <FaMapMarkerAlt className="text-white/60 text-xs mt-0.5 flex-shrink-0" />
