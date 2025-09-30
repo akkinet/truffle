@@ -50,6 +50,7 @@ export default function MembershipButton({ label, user = null }) {
   return (
     <>
       <button
+        data-membership-btn
         onClick={() => setOpen(true)}
         data-membership-btn
         className="bg-[#ECECEC] text-[#110400] hover:bg-[#261612] hover:text-[#ECECEC] transition font-nexa font-semibold text-[14px] py-2 px-6"

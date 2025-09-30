@@ -12,6 +12,7 @@ export default function MembershipPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userData, setUserData] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -180,14 +181,20 @@ export default function MembershipPage() {
 
                 <button
                   onClick={() => {
+                    setSelectedPlan(tier.name.toLowerCase());
                     if (isLoggedIn) {
                       if (tier.price === 0) {
                         // Free tier - no action needed for logged-in users
                         return;
+                      } else if (userData?.membership === 'free') {
+                        // Logged-in but free membership: open apply membership modal with prefilled fields
+                        setShowMembershipModal(true);
                       } else {
+                        // Already paid member upgrading: open upgrade modal (Stripe)
                         setShowUpgradeModal(true);
                       }
                     } else {
+                      // Guest: open membership modal with prefilled membershipType
                       setShowMembershipModal(true);
                     }
                   }}
@@ -326,6 +333,8 @@ export default function MembershipPage() {
         <MembershipModal
           isOpen={showMembershipModal}
           onClose={() => setShowMembershipModal(false)}
+          user={isLoggedIn ? userData : null}
+          initialMembershipType={selectedPlan}
         />
       )}
 

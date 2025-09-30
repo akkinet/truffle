@@ -50,7 +50,8 @@ export default function MembershipModal({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
-        receiveUpdates: user.receiveUpdates || false
+        receiveUpdates: user.receiveUpdates || false,
+        membershipType: prev.membershipType
       }));
     }
   }, [user, isOpen]);
@@ -306,6 +307,12 @@ export default function MembershipModal({
 
   const submitHandler = async (e) => {
     e.preventDefault();
+
+    // If user exists (logged-in), trigger payment flow directly
+    if (user) {
+      await handlePaidMembership();
+      return;
+    }
     
     if (!validateForm()) {
       toast.error("Please fix the validation errors");
