@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
 function UpgradeSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { data: session, update } = useSession();
   const [status, setStatus] = useState('checking');
   const [paymentData, setPaymentData] = useState(null);
   const [pollCount, setPollCount] = useState(0);
@@ -102,6 +104,31 @@ function UpgradeSuccessContent() {
         console.log('📝 Updated user data:', currentUser);
         localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
         
+        // Update NextAuth session
+        console.log('🔄 Updating NextAuth session...');
+        try {
+          await update({
+            ...session?.user,
+            membership: data.user.membership,
+            membershipStatus: data.user.membershipStatus,
+            membershipStartedAt: data.user.membershipStartedAt,
+            membershipPaidAmount: data.user.membershipPaidAmount
+          });
+          console.log('✅ NextAuth session updated successfully');
+          
+          // Force session refresh by triggering a re-fetch
+          setTimeout(async () => {
+            try {
+              await update();
+              console.log('✅ NextAuth session refreshed');
+            } catch (refreshError) {
+              console.error('❌ Failed to refresh NextAuth session:', refreshError);
+            }
+          }, 1000);
+        } catch (sessionError) {
+          console.error('❌ Failed to update NextAuth session:', sessionError);
+        }
+        
         // Dispatch custom event to notify components of membership update
         console.log('📡 Dispatching membershipUpdated event...');
         window.dispatchEvent(new CustomEvent('membershipUpdated', { 
@@ -112,6 +139,31 @@ function UpgradeSuccessContent() {
         }));
         
         console.log('✅ Membership update process completed successfully');
+        
+        // Logout user and redirect to login to refresh session
+        console.log('🔄 Logging out user to refresh session...');
+        setTimeout(async () => {
+          try {
+            // Clear localStorage
+            localStorage.removeItem('userLoggedIn');
+            localStorage.removeItem('authToken');
+            
+            // Sign out from NextAuth
+            await signOut({ 
+              redirect: false,
+              callbackUrl: '/auth/signin?message=membership-upgraded'
+            });
+            
+            console.log('✅ User logged out successfully');
+            
+            // Redirect to login page with success message
+            router.push('/auth/signin?message=membership-upgraded');
+          } catch (logoutError) {
+            console.error('❌ Error during logout:', logoutError);
+            // Fallback: redirect to login anyway
+            router.push('/auth/signin?message=membership-upgraded');
+          }
+        }, 2000);
       } else {
         console.error('❌ Membership upgrade failed:', data);
         // Still try to update localStorage with payment data if API fails
@@ -122,6 +174,20 @@ function UpgradeSuccessContent() {
         currentUser.membershipStatus = 'active';
         currentUser.membershipStartedAt = new Date();
         localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
+        
+        // Update NextAuth session
+        console.log('🔄 Updating NextAuth session (fallback)...');
+        try {
+          await update({
+            ...session?.user,
+            membership: membershipType,
+            membershipStatus: 'active',
+            membershipStartedAt: new Date()
+          });
+          console.log('✅ NextAuth session updated successfully (fallback)');
+        } catch (sessionError) {
+          console.error('❌ Failed to update NextAuth session (fallback):', sessionError);
+        }
         
         window.dispatchEvent(new CustomEvent('membershipUpdated', { 
           detail: { 
@@ -140,6 +206,20 @@ function UpgradeSuccessContent() {
       currentUser.membershipStatus = 'active';
       currentUser.membershipStartedAt = new Date();
       localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
+      
+      // Update NextAuth session
+      console.log('🔄 Updating NextAuth session (catch fallback)...');
+      try {
+        await update({
+          ...session?.user,
+          membership: membershipType,
+          membershipStatus: 'active',
+          membershipStartedAt: new Date()
+        });
+        console.log('✅ NextAuth session updated successfully (catch fallback)');
+      } catch (sessionError) {
+        console.error('❌ Failed to update NextAuth session (catch fallback):', sessionError);
+      }
       
       window.dispatchEvent(new CustomEvent('membershipUpdated', { 
         detail: { 
@@ -180,9 +260,14 @@ function UpgradeSuccessContent() {
                 {paymentData?.membershipType?.charAt(0).toUpperCase() + paymentData?.membershipType?.slice(1)}
               </span>
             </p>
-            <p className="text-gray-300 mb-8">
+            <p className="text-gray-300 mb-4">
               You now have access to all premium features and services.
             </p>
+            <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-4 mb-6">
+              <p className="text-blue-200 text-sm">
+                🔄 Please wait while we refresh your session... You will be automatically logged out and redirected to sign in again to access your new membership benefits.
+              </p>
+            </div>
             <button
               onClick={handleBackToHome}
               className="bg-yellow-600 hover:bg-yellow-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"

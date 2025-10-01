@@ -7,17 +7,23 @@ import { useRouter, useSearchParams } from 'next/navigation';
 function SignInContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
   
   const callbackUrl = searchParams.get('callbackUrl') || '/';
   const errorParam = searchParams.get('error');
+  const messageParam = searchParams.get('message');
 
   useEffect(() => {
     if (errorParam) {
       setError('Authentication failed. Please try again.');
+      setSuccessMessage('');
+    } else if (messageParam === 'membership-upgraded') {
+      setError(''); // Clear any previous errors
+      setSuccessMessage('🎉 Membership upgraded successfully! Please sign in again to access your new membership benefits.');
     }
-  }, [errorParam]);
+  }, [errorParam, messageParam]);
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
@@ -72,6 +78,12 @@ function SignInContent() {
         {error && (
           <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
             <p className="text-red-200 text-sm">{error}</p>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-4 mb-6">
+            <p className="text-green-200 text-sm">{successMessage}</p>
           </div>
         )}
 

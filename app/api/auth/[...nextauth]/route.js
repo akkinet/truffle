@@ -51,6 +51,23 @@ async function createMongoClient() {
 // Initialize MongoDB client
 clientPromise = createMongoClient();
 
+// Function to get adapter dynamically
+async function getAdapter() {
+  if (adapterAvailable && clientPromise) {
+    try {
+      const client = await clientPromise;
+      if (client) {
+        console.log('✅ Using MongoDB adapter for NextAuth');
+        return MongoDBAdapter(clientPromise);
+      }
+    } catch (error) {
+      console.log('⚠️  MongoDB adapter failed, falling back to JWT:', error.message);
+    }
+  }
+  console.log('📝 Using JWT strategy for NextAuth');
+  return undefined;
+}
+
 export const authOptions = {
   // Use MongoDB adapter only if connection is available
   adapter: adapterAvailable ? MongoDBAdapter(clientPromise) : undefined,
@@ -160,61 +177,63 @@ export const authOptions = {
   callbacks: {
     async signIn({ user, account, profile }) {
       if (account?.provider === "google" || account?.provider === "facebook") {
-        // For OAuth providers, try to sync with our User model if MongoDB is available
-        if (adapterAvailable) {
-          try {
-            await dbConnect();
-            console.log('🔍 Checking for existing OAuth user:', user.email);
-            
-            let existingUser = await User.findOne({ email: user.email });
-            
-            if (!existingUser) {
-              // Create new user in our User model
-              console.log('👤 Creating new OAuth user in database:', user.email);
-              
-              const salt = await bcrypt.genSalt(10);
-              const hashedPassword = await bcrypt.hash("oauth-user", salt);
-              
-              // Extract name parts
-              const nameParts = user.name?.split(' ') || ['Unknown', 'User'];
-              const firstName = nameParts[0] || 'Unknown';
-              const lastName = nameParts.slice(1).join(' ') || 'User';
-              
-              existingUser = new User({
-                email: user.email,
-                firstName: firstName,
-                lastName: lastName,
-                password: hashedPassword,
-                receiveUpdates: false,
-                membership: 'free',
-                membershipStatus: 'active',
-                provider: account.provider
-              });
-              
-              await existingUser.save();
-              console.log('✅ OAuth user created in database:', user.email);
-            } else {
-              console.log('✅ Existing OAuth user found:', user.email);
-            }
-            
-            // Update user object with database info
-            user.id = existingUser._id.toString();
-            user.membership = existingUser.membership;
-            user.membershipStatus = existingUser.membershipStatus;
-            user.firstName = existingUser.firstName;
-            user.lastName = existingUser.lastName;
-            
-            return true;
-          } catch (error) {
-            console.error('❌ Error syncing OAuth user:', error);
-            // Still allow sign-in even if database sync fails
-            return true;
-          }
-        } else {
-          // MongoDB not available, use JWT-only mode
-          console.log('⚠️  MongoDB not available, using JWT-only mode for OAuth user:', user.email);
+        // Always try to sync with our User model for OAuth users
+        try {
+          await dbConnect();
+          console.log('🔍 Checking for existing OAuth user:', user.email);
           
-          // Extract name parts for JWT token
+          let existingUser = await User.findOne({ email: user.email });
+          
+          if (!existingUser) {
+            // Create new user in our User model
+            console.log('👤 Creating new OAuth user in database:', user.email);
+            
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash("oauth-user", salt);
+            
+            // Extract name parts
+            const nameParts = user.name?.split(' ') || ['Unknown', 'User'];
+            const firstName = nameParts[0] || 'Unknown';
+            const lastName = nameParts.slice(1).join(' ') || 'User';
+            
+            existingUser = new User({
+              email: user.email,
+              firstName: firstName,
+              lastName: lastName,
+              password: hashedPassword,
+              receiveUpdates: false,
+              membership: 'free',
+              membershipStatus: 'active',
+              provider: account.provider
+            });
+            
+            await existingUser.save();
+            console.log('✅ OAuth user created in database:', user.email);
+          } else {
+            console.log('✅ Existing OAuth user found:', user.email);
+          }
+          
+          // Update user object with database info
+          user.id = existingUser._id.toString();
+          user.membership = existingUser.membership;
+          user.membershipStatus = existingUser.membershipStatus;
+          user.firstName = existingUser.firstName;
+          user.lastName = existingUser.lastName;
+          
+          console.log('✅ OAuth user data updated:', {
+            id: user.id,
+            email: user.email,
+            membership: user.membership,
+            membershipStatus: user.membershipStatus
+          });
+          
+          return true;
+        } catch (error) {
+          console.error('❌ Error syncing OAuth user:', error);
+          // Still allow sign-in even if database sync fails
+          console.log('⚠️  Proceeding with OAuth sign-in despite database sync failure');
+          
+          // Set default values for JWT-only mode
           const nameParts = user.name?.split(' ') || ['Unknown', 'User'];
           user.firstName = nameParts[0] || 'Unknown';
           user.lastName = nameParts.slice(1).join(' ') || 'User';
