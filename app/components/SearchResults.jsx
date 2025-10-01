@@ -417,8 +417,10 @@ function ItemCard({ item, onItemClick }) {
       if (item.make) details.push({ label: 'Make', value: item.make });
       if (item.model) details.push({ label: 'Model', value: item.model });
       if (item.transmission) details.push({ label: 'Transmission', value: item.transmission });
-      if (item.horsepower) details.push({ label: 'Horsepower', value: `${item.horsepower} HP` });
-      if (item.capacity) details.push({ label: 'Capacity', value: `${item.capacity} passengers` });
+      if (item.seats) details.push({ label: 'Seats', value: `${item.seats} passengers` });
+      if (item.max_speed) details.push({ label: 'Max Speed', value: `${item.max_speed} km/h` });
+      if (item.range) details.push({ label: 'Range', value: `${item.range} km` });
+      if (item.rating) details.push({ label: 'Rating', value: `${item.rating}/5 ⭐` });
       if (item.features && item.features.length > 0) {
         details.push({ label: 'Key Features', value: item.features.slice(0, 2).join(', ') });
       }
@@ -541,9 +543,9 @@ function ItemCard({ item, onItemClick }) {
         {/* Status Badge */}
         <div className="absolute top-3 right-3">
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            item.available ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
+            (item.available !== false && item.availability !== 'unavailable') ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
           }`}>
-            {item.available ? 'Available' : 'Unavailable'}
+            {(item.available !== false && item.availability !== 'unavailable') ? 'Available' : 'Unavailable'}
           </span>
         </div>
       </div>
