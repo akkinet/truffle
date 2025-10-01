@@ -427,6 +427,7 @@ function ItemCard({ item, onItemClick }) {
       if (item.seats) details.push({ label: 'Seats', value: `${item.seats} passengers` });
       if (item.max_speed) details.push({ label: 'Max Speed', value: `${item.max_speed} km/h` });
       if (item.range) details.push({ label: 'Range', value: `${item.range} km` });
+      if (item.horsepower) details.push({ label: 'Horsepower', value: `${item.horsepower} HP` });
       if (item.rating) details.push({ label: 'Rating', value: `${item.rating}/5 ⭐` });
       if (item.features && item.features.length > 0) {
         details.push({ label: 'Key Features', value: item.features.slice(0, 2).join(', ') });

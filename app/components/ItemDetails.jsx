@@ -306,6 +306,17 @@ export default function ItemDetails({ item, onClose }) {
                     <div className="text-xs text-white/60">{item.transmission || 'N/A'}</div>
                   </div>
                 </div>
+                {item.horsepower && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">⚡</span>
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium text-white">Horsepower</div>
+                      <div className="text-xs text-white/60">{item.horsepower} HP</div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
                     <span className="text-white text-xs">⭐</span>
@@ -513,6 +524,12 @@ export default function ItemDetails({ item, onClose }) {
                   <span className="text-white/60 text-sm">Range</span>
                   <span className="font-medium text-white text-sm">{item.range ? `${item.range} km` : 'N/A'}</span>
                 </div>
+                {item.horsepower && (
+                  <div className="flex justify-between py-2 border-b border-white/10">
+                    <span className="text-white/60 text-sm">Horsepower</span>
+                    <span className="font-medium text-white text-sm">{item.horsepower} HP</span>
+                  </div>
+                )}
                 <div className="flex justify-between py-2 border-b border-white/10">
                   <span className="text-white/60 text-sm">Price per Day</span>
                   <span className="font-medium text-white text-sm">{item.price_per_day ? formatPrice(item.price_per_day) : 'N/A'}</span>
