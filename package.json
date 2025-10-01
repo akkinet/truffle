@@ -18,7 +18,10 @@
     "test-oauth-user": "node scripts/test-oauth-user-creation.js",
     "test-mongodb-handling": "node scripts/test-mongodb-connection-handling.js",
     "test-google-payment": "node scripts/test-google-oauth-payment.js",
-    "test-payment-record": "node scripts/test-payment-record-flow.js"
+    "test-payment-record": "node scripts/test-payment-record-flow.js",
+    "test-session-update": "node scripts/test-session-update.js",
+    "test-hydration": "node scripts/test-hydration-fix.js",
+    "test-session-payment": "node scripts/test-session-update-payment.js"
   },
   "dependencies": {
     "@next-auth/mongodb-adapter": "^1.1.3",

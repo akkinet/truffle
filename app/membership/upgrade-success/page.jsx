@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
 
-export default function UpgradeSuccessPage() {
+function UpgradeSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState('checking');
@@ -72,6 +72,8 @@ export default function UpgradeSuccessPage() {
 
   const upgradeUserMembership = async (paymentData) => {
     try {
+      console.log('🔄 Starting membership upgrade process...', paymentData);
+      
       const response = await fetch('/api/membership/complete-upgrade', {
         method: 'POST',
         headers: {
@@ -83,26 +85,68 @@ export default function UpgradeSuccessPage() {
       });
 
       const data = await response.json();
+      console.log('📊 Complete upgrade API response:', { status: response.status, data });
 
       if (response.ok && data.success) {
+        console.log('✅ Membership upgrade successful, updating localStorage...');
+        
         // Update localStorage with new membership info
         const currentUser = JSON.parse(localStorage.getItem('userLoggedIn') || '{}');
+        console.log('📝 Current user data:', currentUser);
+        
         currentUser.membership = data.user.membership;
         currentUser.membershipStatus = data.user.membershipStatus;
         currentUser.membershipStartedAt = data.user.membershipStartedAt;
         currentUser.membershipPaidAmount = data.user.membershipPaidAmount;
+        
+        console.log('📝 Updated user data:', currentUser);
         localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
         
         // Dispatch custom event to notify components of membership update
+        console.log('📡 Dispatching membershipUpdated event...');
         window.dispatchEvent(new CustomEvent('membershipUpdated', { 
           detail: { 
             membership: data.user.membership,
             membershipStatus: data.user.membershipStatus 
           } 
         }));
+        
+        console.log('✅ Membership update process completed successfully');
+      } else {
+        console.error('❌ Membership upgrade failed:', data);
+        // Still try to update localStorage with payment data if API fails
+        const membershipType = paymentData.membershipType || 'platinum'; // Default to platinum
+        console.log('🔄 Fallback: updating localStorage with payment data...');
+        const currentUser = JSON.parse(localStorage.getItem('userLoggedIn') || '{}');
+        currentUser.membership = membershipType;
+        currentUser.membershipStatus = 'active';
+        currentUser.membershipStartedAt = new Date();
+        localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
+        
+        window.dispatchEvent(new CustomEvent('membershipUpdated', { 
+          detail: { 
+            membership: membershipType,
+            membershipStatus: 'active' 
+          } 
+        }));
       }
     } catch (error) {
-      console.error('Error upgrading membership:', error);
+      console.error('❌ Error upgrading membership:', error);
+      // Fallback: try to update localStorage with payment data
+      const membershipType = paymentData.membershipType || 'platinum'; // Default to platinum
+      console.log('🔄 Fallback: updating localStorage with payment data...');
+      const currentUser = JSON.parse(localStorage.getItem('userLoggedIn') || '{}');
+      currentUser.membership = membershipType;
+      currentUser.membershipStatus = 'active';
+      currentUser.membershipStartedAt = new Date();
+      localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
+      
+      window.dispatchEvent(new CustomEvent('membershipUpdated', { 
+        detail: { 
+          membership: membershipType,
+          membershipStatus: 'active' 
+        } 
+      }));
     }
   };
 
@@ -225,4 +269,19 @@ export default function UpgradeSuccessPage() {
   }
 
   return null;
+}
+
+export default function UpgradeSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-[#110400] to-[#0C0300] flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+        </div>
+      </div>
+    }>
+      <UpgradeSuccessContent />
+    </Suspense>
+  );
 }

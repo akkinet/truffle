@@ -65,9 +65,11 @@ export async function POST(req) {
     if (paymentRecord.tempUserPayload?.userId && paymentRecord.tempUserPayload.userId !== 'oauth-user') {
       // Method 1: Use userId from tempUserPayload (for existing database users)
       user = await User.findById(paymentRecord.tempUserPayload.userId);
+      console.log('Complete upgrade - Found user by userId:', user ? 'Yes' : 'No');
     } else if (paymentRecord.email) {
       // Method 2: Find user by email (fallback when tempUserPayload is missing)
       user = await User.findOne({ email: paymentRecord.email });
+      console.log('Complete upgrade - Found user by email:', user ? 'Yes' : 'No');
     }
     
     // If user not found and this is an OAuth user, create the user
@@ -86,7 +88,8 @@ export async function POST(req) {
         password: hashedPassword,
         receiveUpdates: false,
         membership: 'free', // Will be updated below
-        membershipStatus: 'active'
+        membershipStatus: 'active',
+        provider: 'google' // Assume Google for OAuth users
       });
       
       await user.save();
@@ -94,10 +97,18 @@ export async function POST(req) {
     }
     
     if (!user) {
+      console.log('❌ User not found and could not be created');
       return NextResponse.json({ error: 'User not found and could not be created' }, { status: 404 });
     }
 
     // Update user membership
+    console.log('🔄 Updating user membership:', {
+      userId: user._id,
+      email: user.email,
+      currentMembership: user.membership,
+      newMembership: paymentRecord.membershipType
+    });
+    
     user.membership = paymentRecord.membershipType;
     user.membershipStatus = 'active';
     user.membershipStartedAt = paymentRecord.stripeData.paidAt || new Date();
@@ -106,6 +117,10 @@ export async function POST(req) {
     user.stripeCustomerId = paymentRecord.stripeData.customerId;
 
     await user.save();
+    console.log('✅ User membership updated successfully:', {
+      membership: user.membership,
+      membershipStatus: user.membershipStatus
+    });
 
     // Mark payment record as processed
     paymentRecord.processed = true;

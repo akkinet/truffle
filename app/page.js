@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import Header from "./components/Header";
@@ -23,7 +23,7 @@ import Footer from "./components/Footer";
 import MembershipButton from "./components/MembershipBtn";
 import MembershipModal from "./components/MembershipModal";
 
-export default function Home() {
+function HomeContent() {
   const { data: session, status, update } = useSession();
   const searchParams = useSearchParams();
   const [searchResults, setSearchResults] = useState([]);
@@ -52,32 +52,38 @@ export default function Home() {
       setUser(session.user);
     } else {
       // Check localStorage for user authentication (for newly registered users)
-      const userLoggedIn = localStorage.getItem('userLoggedIn');
-      const authToken = localStorage.getItem('authToken');
-      
-      console.log('Checking localStorage:', { userLoggedIn: !!userLoggedIn, authToken: !!authToken });
-      
-      if (userLoggedIn && authToken) {
-        try {
-          const userData = JSON.parse(userLoggedIn);
-          setUser(userData);
-          setUserMembership(userData.membership || 'free');
-        } catch (error) {
-          console.error('Error parsing user data from localStorage:', error);
-          localStorage.removeItem('userLoggedIn');
-          localStorage.removeItem('authToken');
+      // Only access localStorage on client side
+      if (typeof window !== 'undefined') {
+        const userLoggedIn = localStorage.getItem('userLoggedIn');
+        const authToken = localStorage.getItem('authToken');
+        
+        console.log('Checking localStorage:', { userLoggedIn: !!userLoggedIn, authToken: !!authToken });
+        
+        if (userLoggedIn && authToken) {
+          try {
+            const userData = JSON.parse(userLoggedIn);
+            setUser(userData);
+            setUserMembership(userData.membership || 'free');
+          } catch (error) {
+            console.error('Error parsing user data from localStorage:', error);
+            localStorage.removeItem('userLoggedIn');
+            localStorage.removeItem('authToken');
+            setUser(null);
+            setUserMembership('free');
+          }
+        } else {
           setUser(null);
           setUserMembership('free');
         }
-      } else {
-        setUser(null);
-        setUserMembership('free');
       }
     }
   }, [session]);
 
   // Listen for localStorage changes (when user completes registration)
   useEffect(() => {
+    // Only set up event listeners on client side
+    if (typeof window === 'undefined') return;
+    
     const handleStorageChange = () => {
       const userLoggedIn = localStorage.getItem('userLoggedIn');
       const authToken = localStorage.getItem('authToken');
@@ -113,16 +119,40 @@ export default function Home() {
       }
     };
 
+    // Listen for custom membership update events
+    const handleMembershipUpdate = (event) => {
+      console.log('Membership update event received:', event.detail);
+      // Refresh user data from localStorage
+      const userLoggedIn = localStorage.getItem('userLoggedIn');
+      const authToken = localStorage.getItem('authToken');
+      
+      if (userLoggedIn && authToken) {
+        try {
+          const userData = JSON.parse(userLoggedIn);
+          console.log('Membership update - refreshing user data:', userData);
+          setUser(userData);
+          setUserMembership(userData.membership || 'free');
+        } catch (error) {
+          console.error('Error parsing user data from membership update:', error);
+        }
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('membershipUpdated', handleMembershipUpdate);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('membershipUpdated', handleMembershipUpdate);
     };
   }, [session]);
 
   // Additional check to ensure user data is loaded (fallback for timing issues)
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
     if (!user && !session?.user) {
       const userLoggedIn = localStorage.getItem('userLoggedIn');
       const authToken = localStorage.getItem('authToken');
@@ -417,5 +447,20 @@ export default function Home() {
         />
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-[#110400] to-[#0C0300] flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

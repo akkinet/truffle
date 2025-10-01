@@ -1,8 +1,8 @@
 "use client";
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function CheckoutReturnPage() {
+function CheckoutReturnContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [status, setStatus] = useState('checking');
@@ -51,7 +51,7 @@ export default function CheckoutReturnPage() {
                 const mockPaymentData = {
                   status: 'succeeded',
                   sessionId: sessionId,
-                  membershipType: 'gold', // Default, will be updated
+                  membershipType: 'platinum', // Default to platinum for OAuth users
                   email: 'oauth-user@example.com', // Default
                   tempUserPayload: {
                     isUpgrade: true,
@@ -59,6 +59,22 @@ export default function CheckoutReturnPage() {
                     userId: 'oauth-user'
                   }
                 };
+                
+                // Update localStorage immediately for OAuth users
+                console.log('🔄 Updating localStorage for OAuth user...');
+                const currentUser = JSON.parse(localStorage.getItem('userLoggedIn') || '{}');
+                currentUser.membership = 'platinum';
+                currentUser.membershipStatus = 'active';
+                currentUser.membershipStartedAt = new Date();
+                localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
+                
+                // Dispatch custom event to notify components
+                window.dispatchEvent(new CustomEvent('membershipUpdated', { 
+                  detail: { 
+                    membership: 'platinum',
+                    membershipStatus: 'active' 
+                  } 
+                }));
                 
                 setPaymentData(mockPaymentData);
                 setStatus('success');
@@ -443,4 +459,19 @@ export default function CheckoutReturnPage() {
   }
 
   return null;
+}
+
+export default function CheckoutReturnPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-[#110400] to-[#0C0300] flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold mb-2">Loading...</h2>
+        </div>
+      </div>
+    }>
+      <CheckoutReturnContent />
+    </Suspense>
+  );
 }

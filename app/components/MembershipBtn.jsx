@@ -1,37 +1,77 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import MembershipModal from "./MembershipModal";
 
 export default function MembershipButton({ label, user = null }) {
   const [open, setOpen] = useState(false);
+  const [userMembership, setUserMembership] = useState('free');
+  const [isClient, setIsClient] = useState(false);
   const { data: session, update } = useSession();
 
+  // Set client-side flag to prevent hydration issues
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Check membership from both session and localStorage
-  const getMembershipStatus = () => {
+  useEffect(() => {
+    if (!isClient) return;
+    
     // Check NextAuth session first
     if (session?.user?.membership) {
-      return session.user.membership;
+      setUserMembership(session.user.membership);
+      return;
     }
     
     // Check localStorage for non-OAuth users
-    if (typeof window !== 'undefined') {
+    const userLoggedIn = localStorage.getItem('userLoggedIn');
+    if (userLoggedIn) {
+      try {
+        const userData = JSON.parse(userLoggedIn);
+        setUserMembership(userData.membership || 'free');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        setUserMembership('free');
+      }
+    } else {
+      setUserMembership('free');
+    }
+  }, [session, isClient]);
+
+  // Listen for membership updates
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const handleMembershipUpdate = () => {
+      // Check session first
+      if (session?.user?.membership) {
+        setUserMembership(session.user.membership);
+        return;
+      }
+      
+      // Check localStorage
       const userLoggedIn = localStorage.getItem('userLoggedIn');
       if (userLoggedIn) {
         try {
           const userData = JSON.parse(userLoggedIn);
-          return userData.membership || 'free';
+          setUserMembership(userData.membership || 'free');
         } catch (error) {
           console.error('Error parsing user data:', error);
+          setUserMembership('free');
         }
       }
-    }
-    
-    return 'free';
-  };
+    };
 
-  const userMembership = getMembershipStatus();
+    window.addEventListener('membershipUpdated', handleMembershipUpdate);
+    window.addEventListener('storage', handleMembershipUpdate);
+    
+    return () => {
+      window.removeEventListener('membershipUpdated', handleMembershipUpdate);
+      window.removeEventListener('storage', handleMembershipUpdate);
+    };
+  }, [session, isClient]);
   
   // Don't show the button if user has a paid membership
   const hasPaidMembership = userMembership && userMembership !== 'free';
@@ -40,8 +80,14 @@ export default function MembershipButton({ label, user = null }) {
     sessionMembership: session?.user?.membership,
     localStorageMembership: userMembership,
     hasPaidMembership,
-    shouldShowButton: !hasPaidMembership
+    shouldShowButton: !hasPaidMembership,
+    isClient
   });
+  
+  // Don't render anything until client-side hydration is complete
+  if (!isClient) {
+    return null;
+  }
   
   if (hasPaidMembership) {
     return null; // Hide the button for paid members
