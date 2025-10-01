@@ -285,6 +285,66 @@ export default function ItemDetails({ item, onClose }) {
               </>
             )}
             
+            {/* Yacht specific fields */}
+            {(item.category === 'yachts') && (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">🛥️</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Length & Cabins</div>
+                    <div className="text-xs text-white/60">{item.length_m ? `${item.length_m}m` : 'N/A'} • {item.cabins ? `${item.cabins} cabins` : 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">🏢</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Base Marina</div>
+                    <div className="text-xs text-white/60">{item.base_marina?.address || 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">🏷️</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Registration</div>
+                    <div className="text-xs text-white/60">{item.registration_no || 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">🔧</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Engine Type</div>
+                    <div className="text-xs text-white/60">{item.engine_type || 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">📐</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Cabin Height</div>
+                    <div className="text-xs text-white/60">{item.cabin_height ? `${item.cabin_height} ft` : 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 bg-white/10 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs">⭐</span>
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium text-white">Rating</div>
+                    <div className="text-xs text-white/60">{item.rating ? `${item.rating}/5 ⭐` : 'N/A'}</div>
+                  </div>
+                </div>
+              </>
+            )}
+            
             {/* Luxury Car specific fields */}
             {(item.category === 'luxury_cars' || item.category === 'super_cars') && (
               <>
@@ -590,6 +650,59 @@ export default function ItemDetails({ item, onClose }) {
                 <div className="flex justify-between py-2 border-b border-white/10">
                   <span className="text-white/60 text-sm">Price per Hour</span>
                   <span className="font-medium text-white text-sm">{item.price_per_hour ? formatPrice(item.price_per_hour) : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Rating</span>
+                  <span className="font-medium text-white text-sm">{item.rating ? `${item.rating}/5 ⭐` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Availability</span>
+                  <span className={`font-medium text-sm ${(item.available !== false && item.availability !== 'unavailable') ? 'text-green-300' : 'text-red-300'}`}>
+                    {(item.available !== false && item.availability !== 'unavailable') ? 'Available' : 'Unavailable'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Currency</span>
+                  <span className="font-medium text-white text-sm">{item.currency || 'USD'}</span>
+                </div>
+              </>
+            ) : item.category === 'yachts' ? (
+              <>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Length</span>
+                  <span className="font-medium text-white text-sm">{item.length_m ? `${item.length_m}m` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Cabins</span>
+                  <span className="font-medium text-white text-sm">{item.cabins ? `${item.cabins} cabins` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Max Speed</span>
+                  <span className="font-medium text-white text-sm">{item.max_speed ? `${item.max_speed} knots` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Range</span>
+                  <span className="font-medium text-white text-sm">{item.range ? `${item.range} km` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Base Marina</span>
+                  <span className="font-medium text-white text-sm">{item.base_marina?.address || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Registration</span>
+                  <span className="font-medium text-white text-sm">{item.registration_no || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Engine Type</span>
+                  <span className="font-medium text-white text-sm">{item.engine_type || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Cabin Height</span>
+                  <span className="font-medium text-white text-sm">{item.cabin_height ? `${item.cabin_height} ft` : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/60 text-sm">Price per Day</span>
+                  <span className="font-medium text-white text-sm">{item.price_per_day ? formatPrice(item.price_per_day) : 'N/A'}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-white/10">
                   <span className="text-white/60 text-sm">Rating</span>

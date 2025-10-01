@@ -445,7 +445,15 @@ function ItemCard({ item, onItemClick }) {
     
     if (item.category === 'yachts') {
       if (item.length_m) details.push({ label: 'Length', value: `${item.length_m}m` });
-      if (item.cabins) details.push({ label: 'Cabins', value: item.cabins });
+      if (item.cabins) details.push({ label: 'Cabins', value: `${item.cabins} cabins` });
+      if (item.max_speed) details.push({ label: 'Max Speed', value: `${item.max_speed} knots` });
+      if (item.range) details.push({ label: 'Range', value: `${item.range} km` });
+      if (item.base_marina?.address) details.push({ label: 'Base Marina', value: item.base_marina.address });
+      if (item.registration_no) details.push({ label: 'Registration', value: item.registration_no });
+      if (item.rating) details.push({ label: 'Rating', value: `${item.rating}/5 ⭐` });
+      if (item.features && item.features.length > 0) {
+        details.push({ label: 'Key Features', value: item.features.slice(0, 2).join(', ') });
+      }
     }
     
     if (item.category === 'charter_flights') {
