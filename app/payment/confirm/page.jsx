@@ -32,8 +32,8 @@ export default function PaymentConfirmPage() {
       if (response.ok) {
         setPaymentStatus(data);
         if (data.status === 'succeeded') {
-          // Payment succeeded, show success state
-          setLoading(false);
+          // Payment succeeded, automatically complete membership
+          await handleCompleteMembership(data);
         } else if (data.status === 'pending') {
           // Still pending, poll again
           setTimeout(checkPaymentStatus, 2000);
@@ -51,8 +51,9 @@ export default function PaymentConfirmPage() {
     }
   };
 
-  const handleCompleteMembership = async () => {
-    if (!paymentStatus) return;
+  const handleCompleteMembership = async (paymentData = null) => {
+    const data = paymentData || paymentStatus;
+    if (!data) return;
 
     // Get password from session storage
     const tempPassword = sessionStorage.getItem('tempPassword');
@@ -76,17 +77,17 @@ export default function PaymentConfirmPage() {
         }),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
-      if (response.ok && data.success) {
+      if (response.ok && result.success) {
         // Clear session storage
         sessionStorage.removeItem('tempPassword');
         sessionStorage.removeItem('paymentRecordId');
         
         // Store user data and token for authentication
-        console.log('Storing user data in localStorage:', data.user);
-        localStorage.setItem('userLoggedIn', JSON.stringify(data.user));
-        localStorage.setItem('authToken', data.token);
+        console.log('Storing user data in localStorage:', result.user);
+        localStorage.setItem('userLoggedIn', JSON.stringify(result.user));
+        localStorage.setItem('authToken', result.token);
         
         // Verify storage
         const storedUser = localStorage.getItem('userLoggedIn');
@@ -99,10 +100,14 @@ export default function PaymentConfirmPage() {
           router.push('/');
         }, 2000);
       } else {
-        toast.error(data.error || 'Failed to complete membership');
+        toast.error(result.error || 'Failed to complete membership');
+        setError('Failed to complete membership');
+        setLoading(false);
       }
     } catch (error) {
       toast.error('Network error completing membership');
+      setError('Network error completing membership');
+      setLoading(false);
     }
   };
 
@@ -112,7 +117,7 @@ export default function PaymentConfirmPage() {
         <div className="text-center text-white">
           <FaSpinner className="text-4xl animate-spin mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Processing Payment...</h2>
-          <p className="text-white/60">Please wait while we confirm your payment</p>
+          <p className="text-white/60">Please wait while we confirm your payment and create your membership</p>
         </div>
       </div>
     );
@@ -180,15 +185,13 @@ export default function PaymentConfirmPage() {
 
           <div className="space-y-4">
             <p className="text-white/60">
-              Your payment has been successfully processed. Click below to complete your membership setup.
+              Your payment has been successfully processed and your membership is being created automatically.
             </p>
             
-            <button
-              onClick={handleCompleteMembership}
-              className="bg-white text-[#110400] px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl"
-            >
-              Create Membership
-            </button>
+            <div className="flex items-center justify-center gap-2 text-green-400">
+              <FaSpinner className="animate-spin" />
+              <span>Creating your membership...</span>
+            </div>
           </div>
         </div>
       </div>

@@ -478,12 +478,17 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
                 <p className="text-white/60 text-sm mb-3">
                   You are a free tier member — purchase membership to unlock search features
                 </p>
-                <a
-                  href="/membership"
+                <button
+                  onClick={() => {
+                    // Show membership modal for free members
+                    if (onShowMembershipModal) {
+                      onShowMembershipModal(true);
+                    }
+                  }}
                   className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black px-8 py-3 rounded-lg font-semibold text-sm hover:from-yellow-500 hover:to-yellow-600 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl"
                 >
                   Upgrade Membership
-                </a>
+                </button>
               </div>
             ) : (
               <button 

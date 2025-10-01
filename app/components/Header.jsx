@@ -206,15 +206,6 @@ const Header = () => {
 
         {/* Desktop Right Menu */}
         <div className="hidden md:flex w-[20%] text-[14px] gap-4 text-white justify-end items-center">
-          {!hasPaidMembership() && (
-            <a
-              href="/membership"
-              className="cursor-pointer hover:underline whitespace-nowrap"
-            >
-              Buy Membership
-            </a>
-          )}
-          
           {session || isLoggedIn ? (
             <div className="relative" ref={userDropdownRef}>
               <button
@@ -410,16 +401,6 @@ const Header = () => {
               </a>
               
               <hr className="border-gray-600 my-2" />
-              
-              {!hasPaidMembership() && (
-                <a
-                  href="/membership"
-                  className="cursor-pointer hover:underline transition-colors"
-                  onClick={toggleMobileMenu}
-                >
-                  Buy Membership
-                </a>
-              )}
               
               {!(session || isLoggedIn) && (
                 <p
