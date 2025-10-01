@@ -408,9 +408,16 @@ function ItemCard({ item, onItemClick }) {
     const details = [];
     
     if (item.category === 'private_jets' || item.category === 'charter_flights') {
-      if (item.range_km) details.push({ label: 'Range', value: `${item.range_km.toLocaleString()} km` });
+      if (item.range_km || item.range) details.push({ label: 'Range', value: `${(item.range_km || item.range).toLocaleString()} km` });
       if (item.model) details.push({ label: 'Model', value: item.model });
       if (item.manufacturer) details.push({ label: 'Manufacturer', value: item.manufacturer });
+      if (item.base_airport) details.push({ label: 'Base Airport', value: item.base_airport });
+      if (item.max_speed) details.push({ label: 'Max Speed', value: `${item.max_speed} knots` });
+      if (item.seats) details.push({ label: 'Seats', value: `${item.seats} passengers` });
+      if (item.rating) details.push({ label: 'Rating', value: `${item.rating}/5 ⭐` });
+      if (item.features && item.features.length > 0) {
+        details.push({ label: 'Key Features', value: item.features.slice(0, 2).join(', ') });
+      }
     }
     
     if (item.category === 'luxury_cars' || item.category === 'super_cars') {
