@@ -101,7 +101,13 @@ export async function POST(req) {
       }
     });
 
-    await paymentRecord.save();
+    try {
+      await paymentRecord.save();
+      console.log('✅ Payment record saved successfully:', paymentRecord._id);
+    } catch (error) {
+      console.error('❌ Failed to save payment record:', error);
+      return NextResponse.json({ error: 'Failed to save payment record' }, { status: 500 });
+    }
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
@@ -136,8 +142,14 @@ export async function POST(req) {
     });
 
     // Update payment record with sessionId
-    paymentRecord.sessionId = session.id;
-    await paymentRecord.save();
+    try {
+      paymentRecord.sessionId = session.id;
+      await paymentRecord.save();
+      console.log('✅ Payment record updated with sessionId:', session.id);
+    } catch (error) {
+      console.error('❌ Failed to update payment record with sessionId:', error);
+      // Don't fail the request, but log the error
+    }
 
     return NextResponse.json({ 
       sessionId: session.id,

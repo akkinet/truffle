@@ -103,6 +103,16 @@ export default function PaymentConfirmPage() {
       return;
     }
     
+    // Additional check: if user is logged in via OAuth, redirect to upgrade success
+    if (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) {
+      const userData = JSON.parse(localStorage.getItem('userLoggedIn') || '{}');
+      if (userData.provider && userData.provider !== 'credentials') {
+        console.log('Payment confirm - OAuth user detected via localStorage, redirecting to upgrade success');
+        router.push(`/membership/upgrade-success?session_id=${sessionId}&paymentRecordId=${paymentRecordId}`);
+        return;
+      }
+    }
+    
     // For new user registrations, we need tempPassword
     if (!tempPassword) {
       console.log('Payment confirm - Session expired error triggered');
