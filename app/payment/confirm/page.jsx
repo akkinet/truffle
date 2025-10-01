@@ -55,27 +55,90 @@ export default function PaymentConfirmPage() {
     const data = paymentData || paymentStatus;
     if (!data) return;
 
-    // Get password from session storage
+    // Debug logging
+    console.log('Payment confirm - received data:', data);
+    console.log('Payment confirm - tempUserPayload:', data.tempUserPayload);
+    console.log('Payment confirm - metadata:', data.metadata);
+
+    // Get password from session storage (only for new user registrations)
     const tempPassword = sessionStorage.getItem('tempPassword');
     const paymentRecordId = sessionStorage.getItem('paymentRecordId');
 
+    // Check if this is an upgrade (existing user) or new registration
+    // Multiple detection methods for robustness
+    const isUpgrade = data.tempUserPayload?.isUpgrade || 
+                     data.tempUserPayload?.isOAuthUser ||
+                     data.tempUserPayload?.userId === 'oauth-user' ||
+                     data.isUpgrade || 
+                     data.metadata?.isUpgrade === 'true' ||
+                     data.metadata?.isUpgrade === true ||
+                     // Additional detection: check if user exists in localStorage
+                     (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+    
+    console.log('Payment confirm - isUpgrade:', isUpgrade);
+    console.log('Payment confirm - tempPassword exists:', !!tempPassword);
+    console.log('Payment confirm - localStorage user exists:', typeof window !== 'undefined' && !!localStorage.getItem('userLoggedIn'));
+    
+    // If we can't determine if it's an upgrade, try to detect by checking if user exists
+    let finalIsUpgrade = isUpgrade;
+    if (!finalIsUpgrade && data.email) {
+      try {
+        // Check if user exists in database by email
+        const userCheckResponse = await fetch(`/api/user/check-exists?email=${encodeURIComponent(data.email)}`);
+        if (userCheckResponse.ok) {
+          const userExists = await userCheckResponse.json();
+          finalIsUpgrade = userExists.exists;
+          console.log('Payment confirm - User exists check:', userExists.exists);
+        }
+      } catch (error) {
+        console.log('Payment confirm - User exists check failed:', error);
+      }
+    }
+    
+    // OAuth users and upgrades should never reach this page
+    // If they do, redirect them to the correct page
+    if (finalIsUpgrade || data.tempUserPayload?.isOAuthUser || data.tempUserPayload?.userId) {
+      console.log('Payment confirm - OAuth user or upgrade detected, redirecting to upgrade success');
+      router.push(`/membership/upgrade-success?session_id=${sessionId}&paymentRecordId=${paymentRecordId}`);
+      return;
+    }
+    
+    // For new user registrations, we need tempPassword
     if (!tempPassword) {
+      console.log('Payment confirm - Session expired error triggered');
       toast.error('Session expired. Please try again.');
       router.push('/');
       return;
     }
 
     try {
-      const response = await fetch('/api/auth/complete-membership', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          paymentRecordId: paymentRecordId || sessionId,
-          password: tempPassword
-        }),
-      });
+      let response;
+      
+      if (finalIsUpgrade) {
+        // Handle membership upgrade for existing users
+        response = await fetch('/api/membership/complete-upgrade', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            paymentRecordId: data.paymentRecordId || paymentRecordId,
+            sessionId: sessionId
+          }),
+        });
+      } else {
+        // Handle new user registration
+        response = await fetch('/api/auth/complete-membership', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            paymentRecordId: paymentRecordId || sessionId,
+            password: tempPassword
+          }),
+        });
+      }
 
       const result = await response.json();
 
@@ -84,18 +147,42 @@ export default function PaymentConfirmPage() {
         sessionStorage.removeItem('tempPassword');
         sessionStorage.removeItem('paymentRecordId');
         
-        // Store user data and token for authentication
-        console.log('Storing user data in localStorage:', result.user);
-        localStorage.setItem('userLoggedIn', JSON.stringify(result.user));
-        localStorage.setItem('authToken', result.token);
+        if (isUpgrade) {
+          // Update localStorage with new membership info for upgrades
+          const currentUser = JSON.parse(localStorage.getItem('userLoggedIn') || '{}');
+          currentUser.membership = result.user.membership;
+          currentUser.membershipStatus = result.user.membershipStatus;
+          currentUser.membershipStartedAt = result.user.membershipStartedAt;
+          currentUser.membershipPaidAmount = result.user.membershipPaidAmount;
+          localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
+          
+          // Dispatch custom event to notify components of membership update
+          window.dispatchEvent(new CustomEvent('membershipUpdated', { 
+            detail: { 
+              membership: result.user.membership,
+              membershipStatus: result.user.membershipStatus 
+            } 
+          }));
+          
+          toast.success('Membership upgraded successfully! Welcome to your new tier!');
+        } else {
+          // Store user data and token for new registrations
+          console.log('Storing user data in localStorage:', result.user);
+          localStorage.setItem('userLoggedIn', JSON.stringify(result.user));
+          localStorage.setItem('authToken', result.token);
+          
+          // Dispatch custom event to notify components of membership update
+          window.dispatchEvent(new CustomEvent('membershipUpdated', { 
+            detail: { 
+              membership: result.user.membership,
+              membershipStatus: result.user.membershipStatus 
+            } 
+          }));
+          
+          toast.success('Membership created successfully! Welcome to Truffle!');
+        }
         
-        // Verify storage
-        const storedUser = localStorage.getItem('userLoggedIn');
-        console.log('Verifying localStorage storage:', storedUser);
-        
-        toast.success('Membership created successfully! Welcome to Truffle!');
-        
-        // Redirect to home page as logged-in user
+        // Redirect to home page
         setTimeout(() => {
           router.push('/');
         }, 2000);
@@ -185,12 +272,26 @@ export default function PaymentConfirmPage() {
 
           <div className="space-y-4">
             <p className="text-white/60">
-              Your payment has been successfully processed and your membership is being created automatically.
+              Your payment has been successfully processed and your membership is being {(() => {
+                const isUpgrade = paymentStatus?.tempUserPayload?.isUpgrade || 
+                                 paymentStatus?.isUpgrade || 
+                                 paymentStatus?.metadata?.isUpgrade === 'true' ||
+                                 paymentStatus?.metadata?.isUpgrade === true ||
+                                 (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+                return isUpgrade ? 'upgraded' : 'created';
+              })()} automatically.
             </p>
             
             <div className="flex items-center justify-center gap-2 text-green-400">
               <FaSpinner className="animate-spin" />
-              <span>Creating your membership...</span>
+              <span>{(() => {
+                const isUpgrade = paymentStatus?.tempUserPayload?.isUpgrade || 
+                                 paymentStatus?.isUpgrade || 
+                                 paymentStatus?.metadata?.isUpgrade === 'true' ||
+                                 paymentStatus?.metadata?.isUpgrade === true ||
+                                 (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+                return isUpgrade ? 'Upgrading your membership...' : 'Creating your membership...';
+              })()}</span>
             </div>
           </div>
         </div>

@@ -92,6 +92,14 @@ export default function UpgradeSuccessPage() {
         currentUser.membershipStartedAt = data.user.membershipStartedAt;
         currentUser.membershipPaidAmount = data.user.membershipPaidAmount;
         localStorage.setItem('userLoggedIn', JSON.stringify(currentUser));
+        
+        // Dispatch custom event to notify components of membership update
+        window.dispatchEvent(new CustomEvent('membershipUpdated', { 
+          detail: { 
+            membership: data.user.membership,
+            membershipStatus: data.user.membershipStatus 
+          } 
+        }));
       }
     } catch (error) {
       console.error('Error upgrading membership:', error);

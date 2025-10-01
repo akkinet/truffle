@@ -11,19 +11,48 @@ export async function POST(req) {
     await dbConnect();
 
     const body = await req.json();
-    const { userId, membershipType, email } = body;
+    const { userId, membershipType, email, firstName, lastName } = body;
 
-    if (!userId || !membershipType || !email) {
-      return NextResponse.json({ error: 'User ID, membership type, and email are required' }, { status: 400 });
+    if (!membershipType || !email) {
+      return NextResponse.json({ error: 'Membership type and email are required' }, { status: 400 });
     }
 
-    // Verify user exists and has free membership
-    const user = await User.findById(userId);
+    let user = null;
+    let userFirstName = firstName || 'Unknown';
+    let userLastName = lastName || 'Unknown';
+
+    // Try to find user in database if userId is provided and valid
+    if (userId && userId !== 'undefined' && userId !== 'null') {
+      try {
+        user = await User.findById(userId);
+        if (user) {
+          userFirstName = user.firstName;
+          userLastName = user.lastName;
+          console.log('✅ Found existing user in database:', user.email);
+        }
+      } catch (error) {
+        console.log('⚠️  Invalid userId or user not found in database, proceeding with OAuth user flow');
+      }
+    }
+
+    // If user not found in database, this is likely an OAuth user
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      console.log('ℹ️  Processing OAuth user upgrade:', email);
+      
+      // Check if user exists by email
+      user = await User.findOne({ email: email });
+      
+      if (user) {
+        userFirstName = user.firstName;
+        userLastName = user.lastName;
+        console.log('✅ Found OAuth user by email:', user.email);
+      } else {
+        console.log('ℹ️  OAuth user not in database yet, will be created after payment');
+      }
     }
 
-    if (user.membership !== 'free') {
+    // Check membership status if user exists
+    if (user && user.membership !== 'free') {
       return NextResponse.json({ error: 'User already has a paid membership' }, { status: 400 });
     }
 
@@ -42,11 +71,13 @@ export async function POST(req) {
     // Create Stripe customer
     const customer = await stripe.customers.create({
       email: email,
-      name: `${user.firstName} ${user.lastName}`,
+      name: `${userFirstName} ${userLastName}`,
       metadata: {
-        userId: userId,
+        userId: userId || 'oauth-user',
         membershipType: membershipType,
-        email: email
+        email: email,
+        firstName: userFirstName,
+        lastName: userLastName
       }
     });
 
@@ -54,11 +85,12 @@ export async function POST(req) {
     const paymentRecord = new Payment({
       email: email,
       tempUserPayload: {
-        userId: userId,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        userId: userId || 'oauth-user',
+        firstName: userFirstName,
+        lastName: userLastName,
         email: email,
-        isUpgrade: true
+        isUpgrade: true,
+        isOAuthUser: !user // Flag to indicate this is an OAuth user
       },
       membershipType: membershipType,
       amount: price,
@@ -92,12 +124,14 @@ export async function POST(req) {
       success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/membership/upgrade-success?session_id={CHECKOUT_SESSION_ID}&paymentRecordId=${paymentRecord._id}`,
       cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/membership/upgrade-cancel?session_id={CHECKOUT_SESSION_ID}&paymentRecordId=${paymentRecord._id}`,
       metadata: {
-        userId: userId,
+        userId: userId || 'oauth-user',
         membershipType: membershipType,
         userEmail: email,
         customerId: customer.id,
         paymentRecordId: paymentRecord._id.toString(),
-        isUpgrade: 'true'
+        isUpgrade: 'true',
+        firstName: userFirstName,
+        lastName: userLastName
       }
     });
 

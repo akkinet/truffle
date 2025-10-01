@@ -118,8 +118,41 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
     }
 
     // Handle user upgrade if this is for an existing user
-    if (paymentRecord.tempUserPayload?.isUpgrade && paymentRecord.tempUserPayload?.userId) {
-      const user = await User.findById(paymentRecord.tempUserPayload.userId);
+    if (paymentRecord.tempUserPayload?.isUpgrade) {
+      let user = null;
+      
+      // Try to find user by userId if it's valid
+      if (paymentRecord.tempUserPayload?.userId && paymentRecord.tempUserPayload.userId !== 'oauth-user') {
+        user = await User.findById(paymentRecord.tempUserPayload.userId);
+      }
+      
+      // If user not found, try to find by email
+      if (!user && paymentRecord.email) {
+        user = await User.findOne({ email: paymentRecord.email });
+      }
+      
+      // If user still not found and this is an OAuth user, create the user
+      if (!user && paymentRecord.tempUserPayload?.isOAuthUser) {
+        console.log('Creating OAuth user in webhook:', paymentRecord.email);
+        
+        const bcrypt = require('bcryptjs');
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash("oauth-user", salt);
+        
+        user = new User({
+          email: paymentRecord.email,
+          firstName: paymentRecord.tempUserPayload.firstName || 'Unknown',
+          lastName: paymentRecord.tempUserPayload.lastName || 'Unknown',
+          password: hashedPassword,
+          receiveUpdates: false,
+          membership: 'free', // Will be updated below
+          membershipStatus: 'active'
+        });
+        
+        await user.save();
+        console.log('✅ OAuth user created in webhook:', user.email);
+      }
+      
       if (user) {
         user.membership = paymentRecord.membershipType;
         user.membershipStatus = 'active';

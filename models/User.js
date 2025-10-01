@@ -56,6 +56,11 @@ const userSchema = new mongoose.Schema({
   membershipPaymentRef: {
     type: String,
     default: null
+  },
+  provider: {
+    type: String,
+    enum: ['credentials', 'google', 'facebook'],
+    default: 'credentials'
   }
 }, { timestamps: true });
 

@@ -12,16 +12,53 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(null);
   const { data: session } = useSession();
   
   const userDropdownRef = useRef(null);
   
-  // console.log("session:", session);
-  
-  let isLoggedIn = null;
-  if (typeof window !== 'undefined') {
-    isLoggedIn = JSON.parse(window.localStorage.getItem("userLoggedIn"));
-  }
+  // Load user data from localStorage on client side only
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userData = localStorage.getItem("userLoggedIn");
+      if (userData) {
+        try {
+          setIsLoggedIn(JSON.parse(userData));
+        } catch (error) {
+          console.error('Error parsing user data:', error);
+          setIsLoggedIn(null);
+        }
+      }
+    }
+  }, []);
+
+  // Listen for membership updates
+  useEffect(() => {
+    const handleStorageChange = () => {
+      if (typeof window !== 'undefined') {
+        const userData = localStorage.getItem("userLoggedIn");
+        if (userData) {
+          try {
+            setIsLoggedIn(JSON.parse(userData));
+          } catch (error) {
+            console.error('Error parsing user data:', error);
+            setIsLoggedIn(null);
+          }
+        }
+      }
+    };
+
+    // Listen for storage changes (when membership is updated)
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also listen for custom events
+    window.addEventListener('membershipUpdated', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('membershipUpdated', handleStorageChange);
+    };
+  }, []);
 
   const userLogOut = () => { window.localStorage.removeItem("userLoggedIn"); signOut({ callbackUrl: "/" }); }
 

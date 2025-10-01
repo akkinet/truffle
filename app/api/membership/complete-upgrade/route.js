@@ -9,18 +9,28 @@ export async function POST(req) {
     await dbConnect();
 
     const body = await req.json();
-    const { paymentRecordId } = body;
+    const { paymentRecordId, sessionId } = body;
 
-    if (!paymentRecordId) {
-      return NextResponse.json({ error: 'Payment record ID is required' }, { status: 400 });
+    if (!paymentRecordId && !sessionId) {
+      return NextResponse.json({ error: 'Payment record ID or Session ID is required' }, { status: 400 });
     }
 
-    // Find the payment record
-    const paymentRecord = await Payment.findById(paymentRecordId);
+    // Find the payment record by either paymentRecordId or sessionId
+    const query = paymentRecordId ? { _id: paymentRecordId } : { sessionId: sessionId };
+    const paymentRecord = await Payment.findOne(query);
 
     if (!paymentRecord) {
       return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
     }
+
+    // Debug logging
+    console.log('Complete upgrade - Payment record:', {
+      id: paymentRecord._id,
+      email: paymentRecord.email,
+      membershipType: paymentRecord.membershipType,
+      status: paymentRecord.status,
+      tempUserPayload: paymentRecord.tempUserPayload
+    });
 
     // Verify payment was successful
     if (paymentRecord.status !== 'succeeded') {
@@ -31,14 +41,60 @@ export async function POST(req) {
     }
 
     // Verify this is an upgrade (not a new user registration)
-    if (!paymentRecord.tempUserPayload.isUpgrade) {
+    // Multiple ways to detect if this is an upgrade
+    const isUpgrade = paymentRecord.tempUserPayload?.isUpgrade || 
+                     paymentRecord.tempUserPayload?.userId || 
+                     paymentRecord.tempUserPayload?.isOAuthUser ||
+                     // If tempUserPayload is missing, check if user exists by email
+                     (paymentRecord.email && await User.findOne({ email: paymentRecord.email }));
+    
+    console.log('Complete upgrade - Detection:', {
+      tempUserPayloadIsUpgrade: paymentRecord.tempUserPayload?.isUpgrade,
+      tempUserPayloadUserId: paymentRecord.tempUserPayload?.userId,
+      tempUserPayloadIsOAuthUser: paymentRecord.tempUserPayload?.isOAuthUser,
+      emailExists: paymentRecord.email && await User.findOne({ email: paymentRecord.email }),
+      finalIsUpgrade: isUpgrade
+    });
+    
+    if (!isUpgrade) {
       return NextResponse.json({ error: 'This is not an upgrade payment' }, { status: 400 });
     }
 
-    // Find the user to upgrade
-    const user = await User.findById(paymentRecord.tempUserPayload.userId);
+    // Find the user to upgrade - try multiple methods
+    let user;
+    if (paymentRecord.tempUserPayload?.userId && paymentRecord.tempUserPayload.userId !== 'oauth-user') {
+      // Method 1: Use userId from tempUserPayload (for existing database users)
+      user = await User.findById(paymentRecord.tempUserPayload.userId);
+    } else if (paymentRecord.email) {
+      // Method 2: Find user by email (fallback when tempUserPayload is missing)
+      user = await User.findOne({ email: paymentRecord.email });
+    }
+    
+    // If user not found and this is an OAuth user, create the user
+    if (!user && paymentRecord.tempUserPayload?.isOAuthUser) {
+      console.log('Creating new OAuth user in database:', paymentRecord.email);
+      
+      // Import bcrypt for password hashing
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash("oauth-user", salt);
+      
+      user = new User({
+        email: paymentRecord.email,
+        firstName: paymentRecord.tempUserPayload.firstName || 'Unknown',
+        lastName: paymentRecord.tempUserPayload.lastName || 'Unknown',
+        password: hashedPassword,
+        receiveUpdates: false,
+        membership: 'free', // Will be updated below
+        membershipStatus: 'active'
+      });
+      
+      await user.save();
+      console.log('✅ OAuth user created in database:', user.email);
+    }
+    
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found and could not be created' }, { status: 404 });
     }
 
     // Update user membership

@@ -1,20 +1,34 @@
-import { MongoClient } from 'mongodb';
+import dbConnect from '../../../../lib/mongodb';
+import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
 export const dynamic = 'force-dynamic';
 
-async function connectToDatabase() {
-  const client = new MongoClient(process.env.MONGODB_URI);
-  await client.connect();
-  const db = client.db(process.env.MONGODB_DB);
-  return { client, db };
-}
-
 export async function GET(request) {
-  let client;
   try {
-    const { db } = await connectToDatabase();
+    // Check if MongoDB URI is configured
+    if (!process.env.MONGODB_URI) {
+      console.error('MONGODB_URI environment variable is not set');
+      return Response.json({
+        success: false,
+        error: 'Database configuration missing',
+        message: 'MongoDB connection string is not configured. Please set MONGODB_URI environment variable.'
+      }, { status: 500 });
+    }
+
+    await dbConnect();
+    const db = mongoose.connection.db;
+    
+    // Check if database connection is successful
+    if (!db) {
+      console.error('Database connection failed');
+      return Response.json({
+        success: false,
+        error: 'Database connection failed',
+        message: 'Unable to connect to the database. Please check your MongoDB configuration.'
+      }, { status: 500 });
+    }
     
     const url = new URL(request.url);
     const searchParams = url.searchParams;
@@ -159,30 +173,51 @@ export async function GET(request) {
     
     // Get the appropriate collection
     let collection;
-    switch (category) {
-      case 'private_jets':
-        collection = db.collection('private_jets');
-        break;
-      case 'luxury_cars':
-        collection = db.collection('luxury_cars');
-        break;
+    try {
+      switch (category) {
+        case 'private_jets':
+          collection = db.collection('private_jets');
+          break;
+        case 'luxury_cars':
+          collection = db.collection('luxury_cars');
+          break;
         case 'super_cars':
           collection = db.collection('super_cars');
-        break;
-      case 'helicopters':
-        collection = db.collection('helicopters');
-        break;
-      case 'yachts':
-        collection = db.collection('yachts');
-        break;
-      case 'charter_flights':
-        collection = db.collection('charter_flights');
-        break;
-      default:
+          break;
+        case 'helicopters':
+          collection = db.collection('helicopters');
+          break;
+        case 'yachts':
+          collection = db.collection('yachts');
+          break;
+        case 'charter_flights':
+          collection = db.collection('charter_flights');
+          break;
+        default:
+          return Response.json({
+            success: false,
+            error: 'Invalid category'
+          }, { status: 400 });
+      }
+      
+      // Check if collection exists
+      const collections = await db.listCollections({ name: collection.collectionName }).toArray();
+      if (collections.length === 0) {
+        console.warn(`Collection ${collection.collectionName} does not exist, returning empty results`);
         return Response.json({
-          success: false,
-          error: 'Invalid category'
-        }, { status: 400 });
+          success: true,
+          count: 0,
+          data: [],
+          message: `Collection ${collection.collectionName} does not exist yet`
+        });
+      }
+    } catch (collectionError) {
+      console.error('Collection access error:', collectionError);
+      return Response.json({
+        success: false,
+        error: 'Collection access failed',
+        message: `Unable to access collection for category: ${category}`
+      }, { status: 500 });
     }
     
     // Build query based on category and parameters
@@ -419,9 +454,5 @@ export async function GET(request) {
       error: 'Internal server error',
       message: error.message
     }, { status: 500 });
-  } finally {
-    if (client) {
-      await client.close();
-    }
   }
 }

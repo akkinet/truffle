@@ -180,15 +180,42 @@ export default function MembershipPage() {
                 </ul>
 
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setSelectedPlan(tier.name.toLowerCase());
                     if (isLoggedIn) {
                       if (tier.price === 0) {
                         // Free tier - no action needed for logged-in users
                         return;
                       } else if (userData?.membership === 'free') {
-                        // Logged-in but free membership: open apply membership modal with prefilled fields
-                        setShowMembershipModal(true);
+                        // Logged-in but free membership: directly upgrade to payment
+                        try {
+                          const response = await fetch('/api/membership/upgrade', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              userId: userData.id,
+                              membershipType: tier.name.toLowerCase(),
+                              email: userData.email,
+                              firstName: userData.firstName || userData.name?.split(' ')[0] || 'Unknown',
+                              lastName: userData.lastName || userData.name?.split(' ')[1] || 'Unknown'
+                            }),
+                          });
+
+                          const data = await response.json();
+
+                          if (response.ok && data.checkoutUrl) {
+                            // Redirect to Stripe Checkout
+                            window.location.href = data.checkoutUrl;
+                          } else {
+                            console.error('Failed to create upgrade session:', data.error);
+                            alert('Failed to create upgrade session. Please try again.');
+                          }
+                        } catch (error) {
+                          console.error('Error creating upgrade session:', error);
+                          alert('An error occurred while processing your request. Please try again.');
+                        }
                       } else {
                         // Already paid member upgrading: open upgrade modal (Stripe)
                         setShowUpgradeModal(true);

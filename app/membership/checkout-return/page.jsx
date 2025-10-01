@@ -46,8 +46,32 @@ export default function CheckoutReturnPage() {
       if (data.status === 'succeeded') {
         console.log('✅ Payment succeeded! Redirecting...');
         setStatus('success');
-        // Redirect to payment confirmation page to complete membership
-        router.push(`/payment/confirm?session_id=${sessionId}`);
+        
+        // Check if this is an upgrade or new registration
+        // Be more aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
+        const isUpgrade = data.tempUserPayload?.isUpgrade || 
+                         data.tempUserPayload?.isOAuthUser ||
+                         data.tempUserPayload?.userId === 'oauth-user' ||
+                         (data.tempUserPayload?.userId && data.tempUserPayload.userId !== 'oauth-user') ||
+                         // If user exists in localStorage, it's likely an upgrade
+                         (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
+                         // If no tempUserPayload but user is logged in, treat as upgrade
+                         (!data.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+        console.log('🔍 Is upgrade?', isUpgrade, {
+          tempUserPayload: data.tempUserPayload,
+          isUpgrade: data.tempUserPayload?.isUpgrade,
+          isOAuthUser: data.tempUserPayload?.isOAuthUser,
+          userId: data.tempUserPayload?.userId,
+          localStorage: typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')
+        });
+        
+        if (isUpgrade) {
+          // For upgrades, redirect to upgrade success page
+          router.push(`/membership/upgrade-success?session_id=${sessionId}&paymentRecordId=${paymentRecordId}`);
+        } else {
+          // For new registrations, redirect to payment confirm page
+          router.push(`/payment/confirm?session_id=${sessionId}`);
+        }
         return;
       }
 
@@ -83,7 +107,26 @@ export default function CheckoutReturnPage() {
               
               if (updateResponse.ok) {
                 setStatus('success');
-                router.push(`/payment/confirm?session_id=${sessionId}`);
+                
+                // Check if this is an upgrade or new registration
+                // Be more aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
+                const isUpgrade = data.tempUserPayload?.isUpgrade || 
+                                 data.tempUserPayload?.isOAuthUser ||
+                                 data.tempUserPayload?.userId === 'oauth-user' ||
+                                 (data.tempUserPayload?.userId && data.tempUserPayload.userId !== 'oauth-user') ||
+                                 // If user exists in localStorage, it's likely an upgrade
+                                 (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
+                                 // If no tempUserPayload but user is logged in, treat as upgrade
+                                 (!data.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+                console.log('🔍 Stripe fallback - Is upgrade?', isUpgrade);
+                
+                if (isUpgrade) {
+                  // For upgrades, redirect to upgrade success page
+                  router.push(`/membership/upgrade-success?session_id=${sessionId}&paymentRecordId=${paymentRecordId}`);
+                } else {
+                  // For new registrations, redirect to payment confirm page
+                  router.push(`/payment/confirm?session_id=${sessionId}`);
+                }
                 return;
               }
             }
@@ -154,7 +197,26 @@ export default function CheckoutReturnPage() {
           
           if (updateResponse.ok) {
             setStatus('success');
-            router.push(`/payment/confirm?session_id=${sessionId}`);
+            
+            // Check if this is an upgrade or new registration
+            // Be more aggressive in detecting upgrades to avoid OAuth users going to payment/confirm
+            const isUpgrade = paymentData?.tempUserPayload?.isUpgrade || 
+                             paymentData?.tempUserPayload?.isOAuthUser ||
+                             paymentData?.tempUserPayload?.userId === 'oauth-user' ||
+                             (paymentData?.tempUserPayload?.userId && paymentData.tempUserPayload.userId !== 'oauth-user') ||
+                             // If user exists in localStorage, it's likely an upgrade
+                             (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn')) ||
+                             // If no tempUserPayload but user is logged in, treat as upgrade
+                             (!paymentData?.tempUserPayload && typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
+            console.log('🔍 Manual check - Is upgrade?', isUpgrade);
+            
+            if (isUpgrade) {
+              // For upgrades, redirect to upgrade success page
+              router.push(`/membership/upgrade-success?session_id=${sessionId}&paymentRecordId=${paymentRecordId}`);
+            } else {
+              // For new registrations, redirect to payment confirm page
+              router.push(`/payment/confirm?session_id=${sessionId}`);
+            }
             return;
           }
         }
