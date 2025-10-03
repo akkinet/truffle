@@ -11,6 +11,8 @@ function PaymentConfirmContent() {
   const [paymentStatus, setPaymentStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pollAttempts, setPollAttempts] = useState(0);
+  const maxPollAttempts = 15; // Increased to allow more time for webhook
 
   const sessionId = searchParams.get('session_id');
 
@@ -35,18 +37,90 @@ function PaymentConfirmContent() {
           // Payment succeeded, automatically complete membership
           await handleCompleteMembership(data);
         } else if (data.status === 'pending') {
-          // Still pending, poll again
-          setTimeout(checkPaymentStatus, 2000);
+          // Still pending, poll again but with a limit
+          if (pollAttempts < maxPollAttempts) {
+            setPollAttempts(prev => prev + 1);
+            setTimeout(checkPaymentStatus, 3000); // Increased to 3 seconds
+          } else {
+            // Check if membership was created by webhook despite pending status
+            await checkIfMembershipExists(data);
+          }
         } else {
-          setError('Payment failed or expired');
-          setLoading(false);
+          // Check if membership was already created by webhook
+          await checkIfMembershipExists(data);
         }
       } else {
-        setError(data.error || 'Failed to check payment status');
-        setLoading(false);
+        // Even if status check fails, check if membership exists
+        await checkIfMembershipExists(data);
       }
     } catch (error) {
-      setError('Network error checking payment status');
+      console.error('Payment status check error:', error);
+      // Check if membership exists despite the error
+      await checkIfMembershipExists(null);
+    }
+  };
+
+  const checkIfMembershipExists = async (paymentData) => {
+    try {
+      // Check if user exists in database by email from payment record
+      const paymentRecordId = sessionStorage.getItem('paymentRecordId');
+      if (paymentRecordId) {
+        const userCheckResponse = await fetch(`/api/user/check-exists?paymentRecordId=${paymentRecordId}`);
+        if (userCheckResponse.ok) {
+          const userData = await userCheckResponse.json();
+          if (userData.exists && userData.user?.membership !== 'free') {
+            // Membership was created by webhook, redirect to success
+            console.log('Membership already created by webhook, redirecting...');
+            setPaymentStatus({ status: 'succeeded', ...userData.user });
+            setLoading(false);
+            
+            // Show success message
+            toast.success('Membership created successfully! Welcome to Truffle!');
+            
+            // Clear session storage
+            sessionStorage.removeItem('tempPassword');
+            sessionStorage.removeItem('paymentRecordId');
+            
+            // Redirect to home page or success page
+            setTimeout(() => {
+              router.push('/?membership=success');
+            }, 2000);
+            return;
+          }
+        }
+      }
+
+      // If we haven't reached max attempts yet, continue polling
+      if (pollAttempts < maxPollAttempts) {
+        console.log(`Webhook membership not found yet, polling attempt ${pollAttempts + 1}/${maxPollAttempts}`);
+        setPollAttempts(prev => prev + 1);
+        setTimeout(() => {
+          checkPaymentStatus();
+        }, 3000);
+        return;
+      }
+
+      // If we reach here, membership doesn't exist yet or there was an error
+      if (paymentData?.status === 'failed') {
+        setError('Payment failed or expired');
+      } else {
+        setError('Failed to complete membership. Please contact support if you were charged.');
+      }
+      setLoading(false);
+    } catch (error) {
+      console.error('Error checking membership existence:', error);
+      
+      // If we haven't reached max attempts yet, continue polling
+      if (pollAttempts < maxPollAttempts) {
+        console.log(`Error checking membership, retrying attempt ${pollAttempts + 1}/${maxPollAttempts}`);
+        setPollAttempts(prev => prev + 1);
+        setTimeout(() => {
+          checkPaymentStatus();
+        }, 3000);
+        return;
+      }
+      
+      setError('Failed to complete membership. Please contact support if you were charged.');
       setLoading(false);
     }
   };
@@ -63,6 +137,36 @@ function PaymentConfirmContent() {
     // Get password from session storage (only for new user registrations)
     const tempPassword = sessionStorage.getItem('tempPassword');
     const paymentRecordId = sessionStorage.getItem('paymentRecordId');
+
+    // First check if membership was already created by webhook
+    if (paymentRecordId) {
+      try {
+        const userCheckResponse = await fetch(`/api/user/check-exists?paymentRecordId=${paymentRecordId}`);
+        if (userCheckResponse.ok) {
+          const userData = await userCheckResponse.json();
+          if (userData.exists && userData.user?.membership !== 'free') {
+            console.log('Membership already created by webhook, redirecting to success...');
+            // Clear session storage
+            sessionStorage.removeItem('tempPassword');
+            sessionStorage.removeItem('paymentRecordId');
+            
+            // Show success and redirect
+            setPaymentStatus({ status: 'succeeded', ...userData.user });
+            setLoading(false);
+            
+            // Show success message
+            toast.success('Membership created successfully! Welcome to Truffle!');
+            
+            setTimeout(() => {
+              router.push('/?membership=success');
+            }, 2000);
+            return;
+          }
+        }
+      } catch (error) {
+        console.log('Error checking webhook-created membership:', error);
+      }
+    }
 
     // Check if this is an upgrade (existing user) or new registration
     // Multiple detection methods for robustness
@@ -197,6 +301,31 @@ function PaymentConfirmContent() {
           router.push('/');
         }, 2000);
       } else {
+        // Check if it's a duplicate user error and handle gracefully
+        if (result.error && result.error.includes('already exists')) {
+          console.log('User already exists, checking for existing membership...');
+          // Try to get existing user data
+          try {
+            const userCheckResponse = await fetch(`/api/user/check-exists?email=${encodeURIComponent(data.email)}`);
+            if (userCheckResponse.ok) {
+              const userData = await userCheckResponse.json();
+              if (userData.exists && userData.user?.membership !== 'free') {
+                // User exists with paid membership, show success
+                toast.success('Membership already active! Welcome to Truffle!');
+                setPaymentStatus({ status: 'succeeded', ...userData.user });
+                setLoading(false);
+                
+                setTimeout(() => {
+                  router.push('/?membership=success');
+                }, 2000);
+                return;
+              }
+            }
+          } catch (checkError) {
+            console.log('Error checking existing user:', checkError);
+          }
+        }
+        
         toast.error(result.error || 'Failed to complete membership');
         setError('Failed to complete membership');
         setLoading(false);
@@ -211,10 +340,23 @@ function PaymentConfirmContent() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0D0300] to-[#1a0f08] flex items-center justify-center">
-        <div className="text-center text-white">
+        <div className="text-center text-white max-w-md mx-auto px-4">
           <FaSpinner className="text-4xl animate-spin mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">Processing Payment...</h2>
-          <p className="text-white/60">Please wait while we confirm your payment and create your membership</p>
+          <p className="text-white/60 mb-4">Please wait while we confirm your payment and create your membership</p>
+          {pollAttempts > 0 && (
+            <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-4">
+              <p className="text-blue-200 text-sm">
+                Checking for membership creation... (Attempt {pollAttempts}/{maxPollAttempts})
+              </p>
+              <div className="w-full bg-blue-900/30 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
+                  style={{ width: `${(pollAttempts / maxPollAttempts) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -240,70 +382,19 @@ function PaymentConfirmContent() {
 
   if (paymentStatus && paymentStatus.status === 'succeeded') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0D0300] to-[#1a0f08] flex items-center justify-center p-4">
-        <div className="max-w-2xl mx-auto text-center text-white">
-          <FaCheckCircle className="text-6xl text-green-400 mx-auto mb-6" />
-          
-          <h1 className="text-3xl font-maleh font-light mb-4">
-            Payment Confirmed!
-          </h1>
-          
-          <div className="bg-[#110400]/50 backdrop-blur-sm rounded-xl border border-white/20 p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Payment Details</h2>
-            
-            <div className="space-y-3 text-left">
-              <div className="flex justify-between">
-                <span className="text-white/60">Status:</span>
-                <span className="text-green-400 font-semibold">Confirmed</span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-white/60">Membership Type:</span>
-                <span className="text-white font-semibold">
-                  {paymentStatus.membershipType?.charAt(0).toUpperCase() + paymentStatus.membershipType?.slice(1)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-white/60">Amount Paid:</span>
-                <span className="text-white font-semibold">
-                  ${(paymentStatus.amount / 100).toFixed(2)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between">
-                <span className="text-white/60">Transaction ID:</span>
-                <span className="text-white/80 text-sm font-mono">
-                  {paymentStatus.sessionId?.slice(-8)}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <p className="text-white/60">
-              Your payment has been successfully processed and your membership is being {(() => {
-                const isUpgrade = paymentStatus?.tempUserPayload?.isUpgrade || 
-                                 paymentStatus?.isUpgrade || 
-                                 paymentStatus?.metadata?.isUpgrade === 'true' ||
-                                 paymentStatus?.metadata?.isUpgrade === true ||
-                                 (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
-                return isUpgrade ? 'upgraded' : 'created';
-              })()} automatically.
-            </p>
-            
-            <div className="flex items-center justify-center gap-2 text-green-400">
-              <FaSpinner className="animate-spin" />
-              <span>{(() => {
-                const isUpgrade = paymentStatus?.tempUserPayload?.isUpgrade || 
-                                 paymentStatus?.isUpgrade || 
-                                 paymentStatus?.metadata?.isUpgrade === 'true' ||
-                                 paymentStatus?.metadata?.isUpgrade === true ||
-                                 (typeof window !== 'undefined' && localStorage.getItem('userLoggedIn'));
-                return isUpgrade ? 'Upgrading your membership...' : 'Creating your membership...';
-              })()}</span>
-            </div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-[#0D0300] to-[#1a0f08] flex items-center justify-center">
+        <div className="text-center text-white max-w-md mx-auto px-4">
+          <FaCheckCircle className="text-4xl text-green-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Payment Successful!</h2>
+          <p className="text-white/60 mb-6">
+            Your membership has been successfully created. You can now access all premium features.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="bg-white text-[#110400] px-6 py-2 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+          >
+            Continue to Dashboard
+          </button>
         </div>
       </div>
     );

@@ -36,6 +36,30 @@ export async function POST(req) {
     const isUpgradeRequest = isUpgrade || paymentRecord.tempUserPayload?.isUpgrade || paymentRecord.tempUserPayload?.userId;
     const existingUser = await User.findOne({ email: paymentRecord.email });
 
+    // Check if payment record is already processed
+    if (paymentRecord.processed) {
+      console.log('Payment record already processed, returning existing user data');
+      if (existingUser) {
+        return NextResponse.json({ 
+          success: true,
+          message: 'Membership already completed',
+          user: {
+            id: existingUser._id,
+            email: existingUser.email,
+            firstName: existingUser.firstName,
+            lastName: existingUser.lastName,
+            membership: existingUser.membership,
+            membershipStatus: existingUser.membershipStatus,
+            membershipStartedAt: existingUser.membershipStartedAt,
+            membershipPaidAmount: existingUser.membershipPaidAmount,
+            membershipPaymentRef: existingUser.membershipPaymentRef
+          }
+        }, { status: 200 });
+      } else {
+        return NextResponse.json({ error: 'Payment processed but user not found' }, { status: 404 });
+      }
+    }
+
     if (isUpgradeRequest && existingUser) {
       // Handle upgrade case - update existing user
       existingUser.membership = paymentRecord.membershipType;
@@ -86,22 +110,52 @@ export async function POST(req) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash('oauth-user', salt);
 
-        // Create the user account
-        const user = new User({
-          firstName: paymentRecord.tempUserPayload.firstName,
-          lastName: paymentRecord.tempUserPayload.lastName,
-          email: paymentRecord.email,
-          password: hashedPassword,
-          membership: paymentRecord.membershipType,
-          membershipStatus: 'active',
-          membershipStartedAt: paymentRecord.stripeData.paidAt || new Date(),
-          membershipPaidAmount: paymentRecord.amount / 100,
-          membershipPaymentRef: paymentRecord.stripeData.stripePaymentId || paymentRecord.sessionId,
-          stripeCustomerId: paymentRecord.stripeData.customerId,
-          receiveUpdates: paymentRecord.tempUserPayload.receiveUpdates
-        });
+        try {
+          // Create the user account
+          const user = new User({
+            firstName: paymentRecord.tempUserPayload.firstName,
+            lastName: paymentRecord.tempUserPayload.lastName,
+            email: paymentRecord.email,
+            password: hashedPassword,
+            membership: paymentRecord.membershipType,
+            membershipStatus: 'active',
+            membershipStartedAt: paymentRecord.stripeData.paidAt || new Date(),
+            membershipPaidAmount: paymentRecord.amount / 100,
+            membershipPaymentRef: paymentRecord.stripeData.stripePaymentId || paymentRecord.sessionId,
+            stripeCustomerId: paymentRecord.stripeData.customerId,
+            receiveUpdates: paymentRecord.tempUserPayload.receiveUpdates
+          });
 
-        await user.save();
+          await user.save();
+        } catch (createError) {
+          // Handle duplicate key error - user might have been created by webhook
+          if (createError.code === 11000) {
+            console.log('User already exists (likely created by webhook), fetching existing user');
+            const existingUser = await User.findOne({ email: paymentRecord.email });
+            if (existingUser) {
+              // Mark payment record as processed and return existing user
+              paymentRecord.processed = true;
+              await paymentRecord.save();
+              
+              return NextResponse.json({ 
+                success: true,
+                message: 'Membership already completed',
+                user: {
+                  id: existingUser._id,
+                  email: existingUser.email,
+                  firstName: existingUser.firstName,
+                  lastName: existingUser.lastName,
+                  membership: existingUser.membership,
+                  membershipStatus: existingUser.membershipStatus,
+                  membershipStartedAt: existingUser.membershipStartedAt,
+                  membershipPaidAmount: existingUser.membershipPaidAmount,
+                  membershipPaymentRef: existingUser.membershipPaymentRef
+                }
+              }, { status: 200 });
+            }
+          }
+          throw createError; // Re-throw if it's not a duplicate key error
+        }
 
         // Mark payment record as processed
         paymentRecord.processed = true;
@@ -154,22 +208,52 @@ export async function POST(req) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create the user account
-        const user = new User({
-          firstName: paymentRecord.tempUserPayload.firstName,
-          lastName: paymentRecord.tempUserPayload.lastName,
-          email: paymentRecord.email,
-          password: hashedPassword,
-          membership: paymentRecord.membershipType,
-          membershipStatus: 'active',
-          membershipStartedAt: paymentRecord.stripeData.paidAt || new Date(),
-          membershipPaidAmount: paymentRecord.amount / 100,
-          membershipPaymentRef: paymentRecord.stripeData.stripePaymentId || paymentRecord.sessionId,
-          stripeCustomerId: paymentRecord.stripeData.customerId,
-          receiveUpdates: paymentRecord.tempUserPayload.receiveUpdates
-        });
+        try {
+          // Create the user account
+          const user = new User({
+            firstName: paymentRecord.tempUserPayload.firstName,
+            lastName: paymentRecord.tempUserPayload.lastName,
+            email: paymentRecord.email,
+            password: hashedPassword,
+            membership: paymentRecord.membershipType,
+            membershipStatus: 'active',
+            membershipStartedAt: paymentRecord.stripeData.paidAt || new Date(),
+            membershipPaidAmount: paymentRecord.amount / 100,
+            membershipPaymentRef: paymentRecord.stripeData.stripePaymentId || paymentRecord.sessionId,
+            stripeCustomerId: paymentRecord.stripeData.customerId,
+            receiveUpdates: paymentRecord.tempUserPayload.receiveUpdates
+          });
 
-        await user.save();
+          await user.save();
+        } catch (createError) {
+          // Handle duplicate key error - user might have been created by webhook
+          if (createError.code === 11000) {
+            console.log('User already exists (likely created by webhook), fetching existing user');
+            const existingUser = await User.findOne({ email: paymentRecord.email });
+            if (existingUser) {
+              // Mark payment record as processed and return existing user
+              paymentRecord.processed = true;
+              await paymentRecord.save();
+              
+              return NextResponse.json({ 
+                success: true,
+                message: 'Membership already completed',
+                user: {
+                  id: existingUser._id,
+                  email: existingUser.email,
+                  firstName: existingUser.firstName,
+                  lastName: existingUser.lastName,
+                  membership: existingUser.membership,
+                  membershipStatus: existingUser.membershipStatus,
+                  membershipStartedAt: existingUser.membershipStartedAt,
+                  membershipPaidAmount: existingUser.membershipPaidAmount,
+                  membershipPaymentRef: existingUser.membershipPaymentRef
+                }
+              }, { status: 200 });
+            }
+          }
+          throw createError; // Re-throw if it's not a duplicate key error
+        }
 
         // Mark payment record as processed
         paymentRecord.processed = true;

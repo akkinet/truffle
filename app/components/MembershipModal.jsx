@@ -23,7 +23,7 @@ export default function MembershipModal({
     email: '',
     password: '',
     confirmPassword: '',
-    membershipType: 'free', // Default to free membership
+    membershipType: user ? 'gold' : 'free', // Default to gold for existing users, free for new users
     receiveUpdates: false
   });
   const [loading, setLoading] = useState(false);
@@ -349,7 +349,7 @@ export default function MembershipModal({
           email: '',
           password: '',
           confirmPassword: '',
-          membershipType: 'free',
+          membershipType: user ? 'gold' : 'free',
           receiveUpdates: false
         });
         // Close modal after successful registration
@@ -679,7 +679,13 @@ export default function MembershipModal({
                   { type: 'gold', name: 'Gold Membership', price: '$100', description: 'Standard search' },
                   { type: 'diamond', name: 'Diamond Membership', price: '$500', description: 'Unlimited search' },
                   { type: 'platinum', name: 'Platinum Membership', price: '$800', description: 'Premium features' }
-                ].map((membership) => {
+                ].filter(membership => {
+                  // For existing users upgrading, exclude free membership
+                  if (user && membership.type === 'free') {
+                    return false;
+                  }
+                  return true;
+                }).map((membership) => {
                   const isCurrentPlan = user && user.membership === membership.type;
                   const isDisabled = user && user.membership === membership.type;
                   
@@ -734,16 +740,12 @@ export default function MembershipModal({
 
               {/* Action Buttons */}
               <div className="flex flex-col md:flex-row gap-3 md:gap-4 mt-4">
-                {!user && (
+                {formData.membershipType === 'free' && !user && (
                   <button
-                    type="button"
-                    onClick={() => {
-                      handleInputChange('membershipType', 'free');
-                      submitHandler(new Event('submit'));
-                    }}
-                    className="flex-1 bg-white/10 border border-white/30 text-white py-2 md:py-3 px-4 md:px-6 rounded-lg hover:bg-white/20 transition-all duration-200 text-sm md:text-base font-medium"
+                    type="submit"
+                    className="flex-1 bg-white text-[#110400] py-2 md:py-3 px-4 md:px-6 rounded-lg hover:bg-gray-100 transition-all duration-200 text-sm md:text-base font-semibold shadow-lg hover:shadow-xl"
                   >
-                    Setup Later
+                    Create Free Account
                   </button>
                 )}
                 
@@ -763,7 +765,9 @@ export default function MembershipModal({
                   >
                     {user && user.membership === formData.membershipType 
                       ? 'Current Plan' 
-                      : 'Pay Now'
+                      : user 
+                        ? 'Upgrade Now'
+                        : 'Pay Now'
                     }
                   </button>
                 )}

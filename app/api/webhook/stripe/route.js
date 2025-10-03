@@ -135,22 +135,32 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
       if (!user && paymentRecord.tempUserPayload?.isOAuthUser) {
         console.log('Creating OAuth user in webhook:', paymentRecord.email);
         
-        const bcrypt = require('bcryptjs');
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash("oauth-user", salt);
-        
-        user = new User({
-          email: paymentRecord.email,
-          firstName: paymentRecord.tempUserPayload.firstName || 'Unknown',
-          lastName: paymentRecord.tempUserPayload.lastName || 'Unknown',
-          password: hashedPassword,
-          receiveUpdates: false,
-          membership: 'free', // Will be updated below
-          membershipStatus: 'active'
-        });
-        
-        await user.save();
-        console.log('✅ OAuth user created in webhook:', user.email);
+        try {
+          const bcrypt = require('bcryptjs');
+          const salt = await bcrypt.genSalt(10);
+          const hashedPassword = await bcrypt.hash("oauth-user", salt);
+          
+          user = new User({
+            email: paymentRecord.email,
+            firstName: paymentRecord.tempUserPayload.firstName || 'Unknown',
+            lastName: paymentRecord.tempUserPayload.lastName || 'Unknown',
+            password: hashedPassword,
+            receiveUpdates: false,
+            membership: 'free', // Will be updated below
+            membershipStatus: 'active'
+          });
+          
+          await user.save();
+          console.log('✅ OAuth user created in webhook:', user.email);
+        } catch (createError) {
+          if (createError.code === 11000) {
+            console.log('User already exists, fetching existing user:', paymentRecord.email);
+            user = await User.findOne({ email: paymentRecord.email });
+          } else {
+            console.error('Error creating OAuth user in webhook:', createError);
+            return;
+          }
+        }
       }
       
       if (user) {
@@ -161,6 +171,10 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
         user.membershipPaymentRef = paymentIntentId;
         user.stripeCustomerId = paymentRecord.stripeData.customerId;
         await user.save();
+
+        // Mark payment record as processed to prevent duplicate processing
+        paymentRecord.processed = true;
+        await paymentRecord.save();
 
         console.log(`User ${user.email} membership upgraded to ${paymentRecord.membershipType}`);
 
