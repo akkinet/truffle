@@ -201,6 +201,7 @@ const Header = () => {
           <a href="/services" className="cursor-pointer hover:underline">Services</a>
           <a href="/experiences" className="cursor-pointer hover:underline">Experiences</a>
           <a href="/about" className="cursor-pointer hover:underline">About</a>
+          <a href="/vendor/onboarding" className="cursor-pointer hover:underline text-yellow-400 font-semibold">Vendor Onboarding</a>
         </div>
 
         {/* Mobile Hamburger Menu */}
@@ -435,6 +436,9 @@ const Header = () => {
               </a>
               <a href="/about" className="cursor-pointer hover:underline transition-colors" onClick={toggleMobileMenu}>
                 About
+              </a>
+              <a href="/vendor/onboarding" className="cursor-pointer hover:underline transition-colors text-yellow-400 font-semibold" onClick={toggleMobileMenu}>
+                Vendor Onboarding
               </a>
               
               <hr className="border-gray-600 my-2" />
