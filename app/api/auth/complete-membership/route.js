@@ -110,9 +110,10 @@ export async function POST(req) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash('oauth-user', salt);
 
+        let user;
         try {
           // Create the user account
-          const user = new User({
+          user = new User({
             firstName: paymentRecord.tempUserPayload.firstName,
             lastName: paymentRecord.tempUserPayload.lastName,
             email: paymentRecord.email,
@@ -208,9 +209,10 @@ export async function POST(req) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        let user;
         try {
           // Create the user account
-          const user = new User({
+          user = new User({
             firstName: paymentRecord.tempUserPayload.firstName,
             lastName: paymentRecord.tempUserPayload.lastName,
             email: paymentRecord.email,

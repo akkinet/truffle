@@ -12,6 +12,7 @@ function PaymentConfirmContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pollAttempts, setPollAttempts] = useState(0);
+  const [successShown, setSuccessShown] = useState(false);
   const maxPollAttempts = 15; // Increased to allow more time for webhook
 
   const sessionId = searchParams.get('session_id');
@@ -74,8 +75,11 @@ function PaymentConfirmContent() {
             setPaymentStatus({ status: 'succeeded', ...userData.user });
             setLoading(false);
             
-            // Show success message
-            toast.success('Membership created successfully! Welcome to Truffle!');
+            // Show success message only once
+            if (!successShown) {
+              toast.success('Membership created successfully! Welcome to Truffle!');
+              setSuccessShown(true);
+            }
             
             // Clear session storage
             sessionStorage.removeItem('tempPassword');
@@ -293,7 +297,11 @@ function PaymentConfirmContent() {
             } 
           }));
           
-          toast.success('Membership created successfully! Welcome to Truffle!');
+          // Show success message only once
+          if (!successShown) {
+            toast.success('Membership created successfully! Welcome to Truffle!');
+            setSuccessShown(true);
+          }
         }
         
         // Redirect to home page
@@ -311,7 +319,10 @@ function PaymentConfirmContent() {
               const userData = await userCheckResponse.json();
               if (userData.exists && userData.user?.membership !== 'free') {
                 // User exists with paid membership, show success
-                toast.success('Membership already active! Welcome to Truffle!');
+                if (!successShown) {
+                  toast.success('Membership already active! Welcome to Truffle!');
+                  setSuccessShown(true);
+                }
                 setPaymentStatus({ status: 'succeeded', ...userData.user });
                 setLoading(false);
                 
@@ -326,13 +337,19 @@ function PaymentConfirmContent() {
           }
         }
         
-        toast.error(result.error || 'Failed to complete membership');
-        setError('Failed to complete membership');
+        // Only show error if success hasn't been shown
+        if (!successShown) {
+          toast.error(result.error || 'Failed to complete membership');
+          setError('Failed to complete membership');
+        }
         setLoading(false);
       }
     } catch (error) {
-      toast.error('Network error completing membership');
-      setError('Network error completing membership');
+      // Only show error if success hasn't been shown
+      if (!successShown) {
+        toast.error('Network error completing membership');
+        setError('Network error completing membership');
+      }
       setLoading(false);
     }
   };
