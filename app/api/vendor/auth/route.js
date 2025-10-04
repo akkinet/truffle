@@ -39,6 +39,13 @@ export async function POST(req) {
       }, { status: 403 });
     }
 
+    // Check if vendor has a password set
+    if (!vendor.password) {
+      return NextResponse.json({ 
+        error: 'Password not set. Please contact administrator.' 
+      }, { status: 401 });
+    }
+
     // Verify password
     const isPasswordValid = await vendor.matchPassword(password);
     if (!isPasswordValid) {

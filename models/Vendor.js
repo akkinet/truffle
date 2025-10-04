@@ -18,7 +18,7 @@ const vendorSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true,
+    required: false,
   },
   phone: {
     type: String,
@@ -165,7 +165,7 @@ const vendorSchema = new mongoose.Schema({
 
 // Pre-save middleware to hash password
 vendorSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.isModified('password') || !this.password) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);
@@ -175,6 +175,9 @@ vendorSchema.pre('save', async function (next) {
 
 // Method to compare password
 vendorSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) {
+    return false;
+  }
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
