@@ -48,15 +48,20 @@ const Header = () => {
       }
     };
 
+    const handleMembershipUpdate = () => {
+      console.log('🔄 Membership update event received, refreshing localStorage data...');
+      handleStorageChange();
+    };
+
     // Listen for storage changes (when membership is updated)
     window.addEventListener('storage', handleStorageChange);
     
     // Also listen for custom events
-    window.addEventListener('membershipUpdated', handleStorageChange);
-
+    window.addEventListener('membershipUpdated', handleMembershipUpdate);
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('membershipUpdated', handleStorageChange);
+      window.removeEventListener('membershipUpdated', handleMembershipUpdate);
     };
   }, []);
 

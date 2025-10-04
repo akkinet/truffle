@@ -281,6 +281,8 @@ export const authOptions = {
           token.name = user.name;
           token.membership = user.membership || 'free';
           token.membershipStatus = user.membershipStatus || 'active';
+          token.membershipStartedAt = user.membershipStartedAt || null;
+          token.membershipPaidAmount = user.membershipPaidAmount || 0;
           token.firstName = user.firstName;
           token.lastName = user.lastName;
           console.log('✅ OAuth user token created:', user.email, adapterAvailable ? 'with DB' : 'JWT-only');
@@ -297,6 +299,8 @@ export const authOptions = {
               token.name = `${dbUser.firstName} ${dbUser.lastName}`;
               token.membership = dbUser.membership;
               token.membershipStatus = dbUser.membershipStatus;
+              token.membershipStartedAt = dbUser.membershipStartedAt;
+              token.membershipPaidAmount = dbUser.membershipPaidAmount;
               console.log('✅ Fresh user data fetched from database:', token.email);
             }
           } catch (error) {
@@ -308,6 +312,8 @@ export const authOptions = {
               token.name = user.name;
               token.membership = user.membership || 'free';
               token.membershipStatus = user.membershipStatus || 'active';
+              token.membershipStartedAt = user.membershipStartedAt || null;
+              token.membershipPaidAmount = user.membershipPaidAmount || 0;
               console.log('⚠️  Using fallback user data:', token.email);
             }
           }
@@ -318,6 +324,8 @@ export const authOptions = {
           token.name = user.name;
           token.membership = user.membership || 'free';
           token.membershipStatus = user.membershipStatus || 'active';
+          token.membershipStartedAt = user.membershipStartedAt || null;
+          token.membershipPaidAmount = user.membershipPaidAmount || 0;
           console.log('✅ New credentials login token created:', token.email);
         }
       }
@@ -335,6 +343,8 @@ export const authOptions = {
           provider: token.provider || null,
           membership: token.membership || 'free',
           membershipStatus: token.membershipStatus || 'active',
+          membershipStartedAt: token.membershipStartedAt || null,
+          membershipPaidAmount: token.membershipPaidAmount || 0,
         };
       }
 

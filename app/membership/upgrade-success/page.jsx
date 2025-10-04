@@ -134,7 +134,9 @@ function UpgradeSuccessContent() {
         window.dispatchEvent(new CustomEvent('membershipUpdated', { 
           detail: { 
             membership: data.user.membership,
-            membershipStatus: data.user.membershipStatus 
+            membershipStatus: data.user.membershipStatus,
+            membershipStartedAt: data.user.membershipStartedAt,
+            membershipPaidAmount: data.user.membershipPaidAmount
           } 
         }));
         
