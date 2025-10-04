@@ -13,8 +13,6 @@ export async function POST(req) {
       firstName,
       lastName,
       email,
-      password,
-      confirmPassword,
       phone,
       
       // Business Information
@@ -35,7 +33,7 @@ export async function POST(req) {
     } = body;
 
     // Validation
-    if (!firstName || !lastName || !email || !password || !confirmPassword || !phone) {
+    if (!firstName || !lastName || !email || !phone) {
       return NextResponse.json({ 
         error: 'Personal information fields are required' 
       }, { status: 400 });
@@ -53,17 +51,6 @@ export async function POST(req) {
       }, { status: 400 });
     }
 
-    if (password !== confirmPassword) {
-      return NextResponse.json({ 
-        error: 'Passwords do not match' 
-      }, { status: 400 });
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json({ 
-        error: 'Password must be at least 8 characters long' 
-      }, { status: 400 });
-    }
 
     // Check if vendor already exists
     const existingVendor = await Vendor.findOne({ email });
@@ -94,7 +81,6 @@ export async function POST(req) {
       firstName,
       lastName,
       email,
-      password,
       phone,
       businessName,
       businessType,

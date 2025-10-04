@@ -89,6 +89,15 @@ export default function BookingSearch({ onSearchResults, onLoading, userMembersh
   const handleSearch = async (e) => {
     e.preventDefault();
     
+    // Check if user is free member - prevent search
+    if (isLoggedIn && userMembership === 'free') {
+      toast.error('Free tier members cannot access search features. Please upgrade your membership.');
+      if (onShowMembershipModal) {
+        onShowMembershipModal(true);
+      }
+      return;
+    }
+    
     if (!selectedCategory) {
       toast.error("Please select a category");
       return;

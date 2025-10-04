@@ -84,28 +84,15 @@ export async function GET(request) {
       }
     });
     
-    // TEMPORARY FIX: Allow all searches for now to test if the issue is authentication
-    // TODO: Remove this after fixing authentication
-    console.log('TEMPORARY: Allowing all searches to test authentication issue');
-    
     // If user has free membership and is trying to search, return restriction message
     if (userMembership === 'free' && (searchParams.get('category') || searchParams.get('from') || searchParams.get('to'))) {
-      // Additional check: if we have any authentication headers but membership is still free,
-      // it might be a header parsing issue, so let's be more permissive
-      if (finalAuthHeader || finalUserEmailHeader || finalUserMembershipHeader) {
-        console.log('Warning: User has auth headers but membership is free. This might be a parsing issue.');
-        // For now, let's allow the search to proceed if we have any auth headers
-        console.log('Allowing search due to presence of auth headers');
-      } else {
-        console.log('No auth headers found, but allowing search temporarily for testing');
-        // TEMPORARY: Comment out the 403 return to test
-        // return Response.json({
-        //   success: false,
-        //   error: 'free-tier-restriction',
-        //   message: 'Free tier members cannot access search features. Please upgrade your membership.',
-        //   upgradeUrl: '/membership'
-        // }, { status: 403 });
-      }
+      console.log('Free tier member attempting to search - blocking access');
+      return Response.json({
+        success: false,
+        error: 'free-tier-restriction',
+        message: 'Free tier members cannot access search features. Please upgrade your membership.',
+        upgradeUrl: '/membership'
+      }, { status: 403 });
     }
     
     // Extract search parameters
